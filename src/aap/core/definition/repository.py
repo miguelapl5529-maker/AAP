@@ -212,3 +212,39 @@ def get_active_version(agent_id: str) -> dict:
             "SELECT * FROM agent_versions WHERE id = ?", (agent["active_version_id"],)
         ).fetchone()
         return _row_to_version(row)
+
+
+def promote_version(agent_id: str, version: int) -> dict:
+    """Activa una versión que YA existe, archivando la que estuviera
+    activa (§16.4). A diferencia de `create_version(activate=True)`, no
+    crea ninguna fila nueva — solo cambia el estado de filas existentes.
+    Idempotente: promocionar la ya-activa no rompe nada."""
+    target = get_version(agent_id, version)
+    with cursor(control_db_path()) as cur:
+        cur.execute(
+            "UPDATE agent_versions SET status = 'archived' "
+            "WHERE agent_id = ? AND id <> ? AND status = 'active'",
+            (agent_id, target["id"]),
+        )
+        cur.execute("UPDATE agent_versions SET status = 'active' WHERE id = ?", (target["id"],))
+        cur.execute(
+            "UPDATE agents SET active_version_id = ?, updated_at = ? WHERE id = ?",
+            (target["id"], _now(), agent_id),
+        )
+    return get_version(agent_id, version)
+
+
+def archive_version(agent_id: str, version: int) -> dict:
+    """Retira una versión sin promocionar ninguna otra en su lugar. Si
+    era la activa, el agente se queda sin versión activa hasta la
+    próxima promoción — un estado válido, no un error (§16.4)."""
+    target = get_version(agent_id, version)
+    agent = get_agent(agent_id)
+    with cursor(control_db_path()) as cur:
+        cur.execute("UPDATE agent_versions SET status = 'archived' WHERE id = ?", (target["id"],))
+        if agent["active_version_id"] == target["id"]:
+            cur.execute(
+                "UPDATE agents SET active_version_id = NULL, updated_at = ? WHERE id = ?",
+                (_now(), agent_id),
+            )
+    return get_version(agent_id, version)

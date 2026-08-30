@@ -11,6 +11,8 @@ from aap.core.definition import repository as repo
 from aap.core.definition.canonical import content_hash
 from aap.core.definition.schema import get_schema
 from aap.core.definition.validate import validate_definition
+from aap.factory.clone import duplicate_agent
+from aap.factory.diff import diff_versions
 
 router = APIRouter()
 
@@ -56,6 +58,30 @@ def create_version(agent_id: str, body: dict = Body(...)) -> dict:
 @router.get("/agents/{agent_id}/versions/{version}")
 def get_version(agent_id: str, version: int) -> dict:
     return repo.get_version(agent_id, version)
+
+
+@router.post("/agents/{agent_id}/versions/{version}/promote")
+def promote_version(agent_id: str, version: int) -> dict:
+    return repo.promote_version(agent_id, version)
+
+
+@router.post("/agents/{agent_id}/versions/{version}/archive")
+def archive_version(agent_id: str, version: int) -> dict:
+    return repo.archive_version(agent_id, version)
+
+
+@router.get("/agents/{agent_id}/versions/{version_a}/diff/{version_b}")
+def diff(agent_id: str, version_a: int, version_b: int) -> dict:
+    return diff_versions(agent_id, version_a, version_b)
+
+
+@router.post("/agents/{agent_id}/duplicate", status_code=201)
+def duplicate(agent_id: str, body: dict = Body(...)) -> dict:
+    return duplicate_agent(
+        agent_id, body["new_id"], body["new_name"],
+        overrides=body.get("overrides"), owner=body.get("owner"),
+        activate=body.get("activate", False),
+    )
 
 
 @router.get("/schema/agent-definition")
