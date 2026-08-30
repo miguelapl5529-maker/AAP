@@ -1,0 +1,137 @@
+id: demand-hunter
+version: 2
+status: active
+content_hash: 6eda50059fe94f4458e70c8c9aecc6ece124d29f168a97391effdc74ed0aafd7
+brain:
+  cheap:
+    capability: cheap
+    temperature: 0.2
+    use_for:
+    - extract
+  primary:
+    capability: standard
+    temperature: 0.2
+    use_for: []
+  reasoning: null
+  response_format: tool_calling
+  system_prompt_ref: null
+evaluation:
+  eval_set_ref: evals/demand_hunter_v1.jsonl
+  metrics:
+  - completion_rate
+  - cost_per_run
+  - signals_per_run
+  - duplicate_rate
+  outcome_links: []
+goal:
+  failure_criteria: []
+  statement: 'Encontrar empresas del sector logístico con señales de necesidad de
+    automatización de procesos y registrarlas como oportunidades cualificadas en el
+    Entity Store.
+
+    '
+  success_criteria:
+  - expr: senales_validas >= 1
+    type: metric
+identity:
+  description: 'Encuentra empresas con señales de necesidad de automatización dentro
+    del mundo simulado y registra oportunidades cualificadas. Primer agente vertical
+    de la plataforma AAP — demuestra el concepto completo sin scraping real, sin GPU
+    y sin servicios externos.
+
+    '
+  icon: radar
+  name: Demand Hunter Demo
+  owner: miguel
+  tags:
+  - ventas
+  - prospección
+  - demo
+io:
+  input_schema: {}
+  output_schema: {}
+knowledge:
+  retrieval:
+    k: 4
+    min_score: 0.5
+    mode: top_k
+  sources: []
+limits:
+  max_concurrent_runs: 1
+  max_runs_per_day: 24
+memory:
+  long_term:
+    enabled: true
+    max_entries: 500
+    retrieval:
+      k: 6
+      recency_weight: 0.3
+    types:
+    - empresa_descartada
+    - patron_senal
+  state_schema:
+    fase:
+      enum:
+      - buscar
+      - registrar
+      type: string
+    senales_validas:
+      default: 0
+      type: integer
+policies:
+  approval:
+    channel: ui
+    on_timeout: block
+    timeout_s: 3600
+  budget:
+    max_money_usd: 2.0
+    max_steps: 25
+    max_tokens: 400000
+    max_tool_calls: 60
+    max_wallclock_s: 900
+  database:
+    domain_db: read_write
+    tables:
+    - companies
+    - signals
+  destructive_actions: deny
+  filesystem:
+    mode: workspace_only
+    write: true
+  network:
+    domains:
+    - '*.internal.test'
+    mode: allowlist
+  outbound_messages:
+    max_per_day: null
+    max_per_run: null
+    mode: denied
+  shell:
+    mode: denied
+runtime:
+  autonomy_level: 2
+  concurrency: 1
+  fixed_steps: []
+  max_iterations: 10
+  resumable: true
+schema_version: 1
+tools:
+- config:
+    max_results: 10
+  id: search.web.mock
+- config: {}
+  id: llm.extract.mock
+- config:
+    tables:
+    - companies
+    - signals
+  id: db.upsert.mock
+- config: {}
+  id: memory.write.mock
+triggers:
+- cron: null
+  timezone: null
+  type: manual
+- cron: null
+  timezone: null
+  type: api

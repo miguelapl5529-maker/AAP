@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from aap.api.routers import agents, health, runs
+from aap.api.routers import agents, evaluation, health, runs
 from aap.core.definition.repository import (
     AgentNotFoundError,
     DuplicateAgentError,
@@ -33,6 +33,7 @@ app = FastAPI(title="AAP — Autonomous Agent Platform", version="0.1.0")
 app.include_router(health.router)
 app.include_router(agents.router)
 app.include_router(runs.router)
+app.include_router(evaluation.router)
 
 if UI_DIR.is_dir():
     app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")

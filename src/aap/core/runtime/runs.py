@@ -118,6 +118,18 @@ def list_runs(agent_id: str | None = None) -> list[dict]:
         return [_row_to_run(r) for r in rows]
 
 
+def list_runs_by_version(agent_version_id: str) -> list[dict]:
+    """Para comparar v1 vs v2 (§12.4) hace falta filtrar por versión
+    exacta, no solo por agente — `list_runs(agent_id)` mezcla todas."""
+    init_runs_table()
+    with cursor(runtime_db_path()) as cur:
+        rows = cur.execute(
+            "SELECT * FROM runs WHERE agent_version_id = ? ORDER BY started_at DESC",
+            (agent_version_id,),
+        ).fetchall()
+        return [_row_to_run(r) for r in rows]
+
+
 def record_step(run_id: str) -> None:
     with cursor(runtime_db_path()) as cur:
         cur.execute("UPDATE runs SET steps = steps + 1 WHERE id = ?", (run_id,))

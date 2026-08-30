@@ -5,8 +5,8 @@ Diseño completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — léelo an
 
 ## Estado
 
-V1 "Laboratory" en construcción por hitos (ver `docs/ARCHITECTURE.md` §26 y el plan
-de la sesión que abrió este repo). Hito actual: **H9 — UI Laboratory**.
+V1 "Laboratory" completa por hitos (ver `docs/ARCHITECTURE.md` §26 y el plan de la
+sesión que abrió este repo): **H0–H10**, el recorrido planeado entero.
 
 ## UI
 
@@ -56,6 +56,23 @@ curl localhost:8080/runs/<run_id>/events
 El servidor HTTP nunca ejecuta el bucle del agente (§6.12, §19.2, §22.3): solo encola en
 `runtime.db:runs` con `status=queued`; el proceso `worker` (contenedor separado) hace
 polling cada 2s y ejecuta con `core/runtime/executor.py`.
+
+## Evaluación (§12)
+
+```bash
+python -m aap.cli.main evaluate demand-hunter
+```
+
+Corre el eval set fijo declarado en `evaluation.eval_set_ref` (`evals/demand_hunter_v1.jsonl`)
+contra la versión activa: cada escenario trae su propio plan de tool_calls scripteado
+(determinista, sin LLM real) y comprobaciones puramente programáticas — **sin juez-LLM**,
+tal como pide la brief. El resultado se persiste en `runtime.db:evaluations` y queda
+visible en `GET /agents/{id}/metrics`. Las métricas mecánicas (Capa 1: tasa de éxito,
+coste, latencia, error de tool, denegaciones de política) se calculan siempre de los
+runs reales, sin ejecutar nada — por eso sí son endpoints de la API
+(`GET /agents/{id}/metrics`, `GET /agents/{id}/compare?a=&b=`), mientras que correr el
+eval set completo queda en el CLI (ejecuta runs de verdad, aunque scripteados e
+instantáneos).
 
 ## Tests
 

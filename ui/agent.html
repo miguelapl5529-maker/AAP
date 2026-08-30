@@ -46,24 +46,77 @@ async function archive(version) {
   load();
 }
 
+const METRIC_LABELS = {
+  completion_rate: "Tasa de éxito", failure_rate: "Tasa de fallo",
+  exhausted_rate: "Tasa de agotamiento", tool_error_rate: "Errores de tool",
+  policy_denial_rate: "Denegaciones de política",
+  avg_cost_usd: "Coste medio", avg_latency_ms: "Latencia media",
+};
+
+function fmtPct(v) { return v === null || v === undefined ? "—" : (v * 100).toFixed(0) + "%"; }
+
+function renderMetricsPanel(metrics) {
+  if (metrics.total_runs === 0) {
+    return '<p class="muted">Sin runs todavía — sin runs no hay métricas mecánicas (§12.2).</p>';
+  }
+  return `
+    <div class="row" style="gap: 32px; flex-wrap: wrap;">
+      <div class="metric"><span class="value">${metrics.total_runs}</span><span class="label">Runs</span></div>
+      <div class="metric"><span class="value">${fmtPct(metrics.completion_rate)}</span><span class="label">Tasa de éxito</span></div>
+      <div class="metric"><span class="value">${fmtPct(metrics.failure_rate)}</span><span class="label">Tasa de fallo</span></div>
+      <div class="metric"><span class="value">${fmtPct(metrics.exhausted_rate)}</span><span class="label">Agotados</span></div>
+      <div class="metric"><span class="value">${fmtCost(metrics.cost_usd.avg)}</span><span class="label">Coste medio/run</span></div>
+      <div class="metric"><span class="value">${fmtCost(metrics.cost_per_completed_run)}</span><span class="label">Coste / run completado</span></div>
+      <div class="metric"><span class="value">${fmtMs(metrics.latency_ms.avg)}</span><span class="label">Latencia media</span></div>
+      <div class="metric"><span class="value">${fmtPct(metrics.tool_error_rate)}</span><span class="label">Errores de tool</span></div>
+      <div class="metric"><span class="value">${fmtPct(metrics.policy_denial_rate)}</span><span class="label">Denegaciones de política</span></div>
+    </div>`;
+}
+
 async function compareVersions() {
   const a = document.getElementById("diff-a").value;
   const b = document.getElementById("diff-b").value;
   const result = document.getElementById("diff-result");
   result.innerHTML = "Comparando…";
   try {
-    const { diff } = await Api.get(`/agents/${encodeURIComponent(agentId)}/versions/${a}/diff/${b}`);
+    const [{ diff }, compareResp] = await Promise.all([
+      Api.get(`/agents/${encodeURIComponent(agentId)}/versions/${a}/diff/${b}`),
+      Api.get(`/agents/${encodeURIComponent(agentId)}/compare?a=${a}&b=${b}`),
+    ]);
+    const delta = compareResp.delta;
+
+    let deltaHtml = '<p class="muted">Sin runs suficientes en ambas versiones para comparar métricas todavía.</p>';
+    if (Object.keys(delta).length > 0) {
+      const rows = Object.entries(delta).map(([key, value]) => {
+        const isRate = key.endsWith("_rate");
+        const formatted = isRate ? fmtPct(value) : (key.includes("cost") ? fmtCost(value) : fmtMs(value));
+        // Para completion_rate, subir es mejor; para todo lo demás
+        // (tasas de fallo/error/denegación, coste, latencia) bajar es mejor.
+        const improved = key === "completion_rate" ? value > 0 : value < 0;
+        const worsened = key === "completion_rate" ? value < 0 : value > 0;
+        const cls = improved ? "badge-completed" : worsened ? "badge-failed" : "";
+        const sign = value > 0 ? "+" : "";
+        return `<tr><td>${METRIC_LABELS[key] || key}</td>
+          <td class="mono"><span class="badge ${cls}">${sign}${formatted}</span></td></tr>`;
+      }).join("");
+      deltaHtml = `<table><thead><tr><th>Métrica (v${a} → v${b})</th><th>Cambio</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }
+
     const rows = (obj, cls) => Object.entries(obj).map(([k, v]) =>
       `<tr><td class="mono">${escapeHtml(k)}</td><td class="${cls}">${escapeHtml(JSON.stringify(v))}</td></tr>`);
     const changedRows = Object.entries(diff.changed).map(([k, v]) =>
       `<tr><td class="mono">${escapeHtml(k)}</td><td class="mono">${escapeHtml(JSON.stringify(v.from))} → ${escapeHtml(JSON.stringify(v.to))}</td></tr>`);
     const allRows = [...changedRows, ...rows(diff.added, "mono"), ...rows(diff.removed, "mono")];
-    if (allRows.length === 0) {
-      result.innerHTML = '<p class="ok-banner">v' + a + ' y v' + b + ' son idénticas.</p>';
-      return;
-    }
-    result.innerHTML = `<table><thead><tr><th>Campo</th><th>Cambio (v${a} → v${b})</th></tr></thead>
-      <tbody>${allRows.join("")}</tbody></table>`;
+    const diffHtml = allRows.length === 0
+      ? `<p class="ok-banner">La definición de v${a} y v${b} es idéntica.</p>`
+      : `<table><thead><tr><th>Campo</th><th>Cambio (v${a} → v${b})</th></tr></thead><tbody>${allRows.join("")}</tbody></table>`;
+
+    result.innerHTML = `
+      <h3>Métricas (§12.4)</h3>
+      ${deltaHtml}
+      <h3>Definición</h3>
+      ${diffHtml}`;
   } catch (err) {
     showError(result, err);
   }
@@ -95,6 +148,9 @@ async function load() {
       Api.get(`/runs?agent_id=${encodeURIComponent(agentId)}`),
     ]);
     const activeVersion = versions.find((v) => v.id === agent.active_version_id);
+    const metricsReport = activeVersion
+      ? await Api.get(`/agents/${encodeURIComponent(agentId)}/metrics?version=${activeVersion.version}`)
+      : null;
 
     content.innerHTML = `
       <div class="row between">
@@ -107,6 +163,10 @@ async function load() {
       </div>
       ${activeVersion ? `<div class="panel">${renderDefinitionSummary(activeVersion.definition)}</div>`
                        : `<div class="panel muted">Este agente no tiene ninguna versión activa.</div>`}
+
+      ${activeVersion ? `
+      <h2>Métricas — v${activeVersion.version} (§12.2)</h2>
+      <div class="panel">${renderMetricsPanel(metricsReport.metrics)}</div>` : ""}
 
       <h2>Versiones</h2>
       <div class="panel">
