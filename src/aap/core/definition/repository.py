@@ -182,6 +182,17 @@ def get_version(agent_id: str, version: int) -> dict:
         return _row_to_version(row)
 
 
+def get_version_by_id(version_id: str) -> dict:
+    """El worker (H7) solo conoce el UUID que `runs.agent_version_id`
+    guarda, no el número de versión — esta es la vía de resolución."""
+    init_control_db()
+    with cursor(control_db_path()) as cur:
+        row = cur.execute("SELECT * FROM agent_versions WHERE id = ?", (version_id,)).fetchone()
+        if row is None:
+            raise VersionNotFoundError(version_id)
+        return _row_to_version(row)
+
+
 def list_versions(agent_id: str) -> list[dict]:
     init_control_db()
     with cursor(control_db_path()) as cur:

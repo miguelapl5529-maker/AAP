@@ -6,7 +6,7 @@ Diseño completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — léelo an
 ## Estado
 
 V1 "Laboratory" en construcción por hitos (ver `docs/ARCHITECTURE.md` §26 y el plan
-de la sesión que abrió este repo). Hito actual: **H0 — esqueleto y andamiaje**.
+de la sesión que abrió este repo). Hito actual: **H7 — API + Worker + Docker**.
 
 ## Arrancar en local (sin Docker)
 
@@ -31,6 +31,21 @@ curl http://localhost:8080/health
 El estado (`control.db`, `runtime.db`, `domain.db`) vive en `./data`, montado como
 volumen — nunca dentro de la imagen (§19.2). `docker compose down && docker compose up -d`
 debe dejar el sistema exactamente como estaba.
+
+## Probar el pipeline completo (API → cola → worker)
+
+```bash
+curl -X POST localhost:8080/agents -d '{"id":"demo","name":"Demo"}' -H 'Content-Type: application/json'
+curl -X POST localhost:8080/agents/demo/versions -d @definicion.json -H 'Content-Type: application/json'
+curl -X POST localhost:8080/agents/demo/runs -d '{"input":{}}' -H 'Content-Type: application/json'
+# → 202 {"run_id": "...", "status": "queued"} — el worker lo recoge en <2s
+curl localhost:8080/runs/<run_id>
+curl localhost:8080/runs/<run_id>/events
+```
+
+El servidor HTTP nunca ejecuta el bucle del agente (§6.12, §19.2, §22.3): solo encola en
+`runtime.db:runs` con `status=queued`; el proceso `worker` (contenedor separado) hace
+polling cada 2s y ejecuta con `core/runtime/executor.py`.
 
 ## Tests
 

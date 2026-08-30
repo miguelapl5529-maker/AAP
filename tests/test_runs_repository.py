@@ -2,6 +2,7 @@ import pytest
 
 from aap.core.runtime.runs import (
     RunNotFoundError,
+    claim_next_queued_run,
     create_run,
     finish_run,
     get_run,
@@ -14,7 +15,7 @@ from aap.core.runtime.runs import (
 
 def test_create_run_defaults():
     run = create_run("demand-hunter", "version-1", trigger="manual", input_data={"sector": "logistica"})
-    assert run["status"] == "running"
+    assert run["status"] == "queued"
     assert run["steps"] == 0
     assert run["tool_calls"] == 0
     assert run["input"] == {"sector": "logistica"}
@@ -71,3 +72,25 @@ def test_finish_run_rejects_non_terminal_status():
     run = create_run("demand-hunter", "v1")
     with pytest.raises(ValueError):
         finish_run(run["id"], status="running")
+
+
+def test_claim_next_queued_run_picks_oldest_and_marks_running():
+    first = create_run("agent-a", "v1")
+    create_run("agent-a", "v1")
+
+    claimed = claim_next_queued_run()
+    assert claimed["id"] == first["id"]
+    assert claimed["status"] == "running"
+
+
+def test_claim_next_queued_run_returns_none_when_nothing_queued():
+    run = create_run("agent-a", "v1")
+    claim_next_queued_run()  # se lleva el único run en cola
+    assert claim_next_queued_run() is None
+    assert get_run(run["id"])["status"] == "running"
+
+
+def test_claim_next_queued_run_does_not_reclaim_an_already_running_run():
+    run = create_run("agent-a", "v1")
+    finish_run(run["id"], status="completed", termination_reason="ok")
+    assert claim_next_queued_run() is None

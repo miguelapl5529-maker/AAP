@@ -89,6 +89,54 @@ def full_registry_factory():
 
 
 @pytest.fixture
+def api_client():
+    from fastapi.testclient import TestClient
+
+    from aap.api.main import app
+
+    return TestClient(app)
+
+
+@pytest.fixture
+def l0_agent_definition() -> dict:
+    """Agente determinista (sin LLM) usado para probar el pipeline API +
+    worker de H7 sin necesitar scripting de un provider a través del
+    límite HTTP."""
+    return {
+        "schema_version": 1,
+        "id": "l0-demo",
+        "identity": {"name": "L0 Demo", "description": "agente determinista para probar la cola"},
+        "goal": {
+            "statement": "demostrar el pipeline API + worker sin LLM",
+            "success_criteria": [{"type": "metric", "expr": "senales_validas >= 1"}],
+        },
+        "runtime": {
+            "autonomy_level": 0,
+            "fixed_steps": [
+                {"tool_id": "search.web.mock", "arguments": {"query": "automatización"}},
+                {"tool_id": "db.upsert.mock", "arguments": {
+                    "table": "signals", "natural_key": "rutasdelsur.mock:l0-demo",
+                    "values": {"company_id": "c1", "type": "automatización"},
+                }},
+                {"tool_id": "state.update", "arguments": {"senales_validas": 1}},
+            ],
+        },
+        "brain": {"primary": {"capability": "standard"}},
+        "tools": [],
+        "memory": {"state_schema": {"senales_validas": {"type": "integer", "default": 0}}},
+        "policies": {
+            "network": {"mode": "allowlist", "domains": ["*.internal.test"]},
+            "database": {"domain_db": "read_write", "tables": ["companies", "signals"]},
+            "budget": {
+                "max_steps": 10, "max_tool_calls": 10, "max_tokens": 100000,
+                "max_money_usd": 1.0, "max_wallclock_s": 60,
+            },
+        },
+        "triggers": [{"type": "manual"}],
+    }
+
+
+@pytest.fixture
 def demand_hunter_definition() -> dict:
     """Definición mínima válida, usada por H1 en adelante como fixture compartida."""
     return {

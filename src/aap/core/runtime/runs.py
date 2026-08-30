@@ -51,7 +51,12 @@ def create_run(
     trigger: str = "manual",
     input_data: dict | None = None,
     parent_run_id: str | None = None,
+    status: str = "queued",
 ) -> dict:
+    """`status="queued"` por defecto: los runs son asíncronos siempre
+    (§22.3). `started_at` se refresca cuando el worker reclama el run
+    (`claim_next_queued_run`), así que hasta entonces también hace de
+    "en cola desde" para el orden FIFO."""
     init_runs_table()
     run_id = str(uuid.uuid4())
     now = _now()
@@ -60,12 +65,35 @@ def create_run(
             """INSERT INTO runs(
                    id, agent_id, agent_version_id, trigger, parent_run_id, status,
                    input_json, started_at, steps, tool_calls, tokens_in, tokens_out, cost_usd
-               ) VALUES (?, ?, ?, ?, ?, 'running', ?, ?, 0, 0, 0, 0, 0)""",
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)""",
             (
-                run_id, agent_id, agent_version_id, trigger, parent_run_id,
+                run_id, agent_id, agent_version_id, trigger, parent_run_id, status,
                 json.dumps(input_data or {}, ensure_ascii=False), now,
             ),
         )
+    return get_run(run_id)
+
+
+def claim_next_queued_run() -> dict | None:
+    """El worker reclama UN run en cola de forma atómica: el `WHERE
+    status='queued'` en el UPDATE hace que dos workers reclamando a la
+    vez nunca se pisen (aunque V1 solo tenga uno, §21.1: un único
+    proceso escritor por fichero)."""
+    init_runs_table()
+    now = _now()
+    with cursor(runtime_db_path()) as cur:
+        row = cur.execute(
+            "SELECT id FROM runs WHERE status = 'queued' ORDER BY started_at ASC LIMIT 1"
+        ).fetchone()
+        if row is None:
+            return None
+        run_id = row["id"]
+        cur.execute(
+            "UPDATE runs SET status = 'running', started_at = ? WHERE id = ? AND status = 'queued'",
+            (now, run_id),
+        )
+        if cur.rowcount == 0:
+            return None
     return get_run(run_id)
 
 
