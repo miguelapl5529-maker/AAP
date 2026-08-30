@@ -1,10 +1,11 @@
-"""CLI mínima para operar Agent Definitions sin UI (§25, etapa B0).
+"""CLI mínima para operar Agent Definitions y runs sin UI (§25, etapa B0).
 
     python -m aap.cli.main validate definicion.yaml
     python -m aap.cli.main create-agent demand-hunter "Demand Hunter"
     python -m aap.cli.main create-version demand-hunter definicion.yaml
     python -m aap.cli.main export demand-hunter 1 --out agents/demand-hunter/v1.yaml
     python -m aap.cli.main show demand-hunter
+    python -m aap.cli.main trace <run_id>
 """
 
 import argparse
@@ -17,6 +18,9 @@ import yaml
 from aap.core.definition import repository as repo
 from aap.core.definition.export import export_yaml
 from aap.core.definition.validate import DefinitionValidationError, validate_definition
+from aap.core.events.log import list_events
+from aap.core.runtime.runs import RunNotFoundError, get_run
+from aap.core.runtime.tool_calls import list_tool_calls
 
 
 def _load_doc(path: str) -> dict:
@@ -76,6 +80,29 @@ def cmd_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_trace(args: argparse.Namespace) -> int:
+    try:
+        run = get_run(args.run_id)
+    except RunNotFoundError:
+        print(f"no existe el run {args.run_id}", file=sys.stderr)
+        return 1
+
+    print(f"RUN {run['id']}  agent={run['agent_id']}  version={run['agent_version_id']}")
+    print(f"status={run['status']}  steps={run['steps']}  tool_calls={run['tool_calls']}  "
+          f"cost_usd={run['cost_usd']}  termination={run['termination_reason']}")
+    print()
+    print("EVENTOS")
+    for ev in list_events(args.run_id):
+        print(f"  [{ev['seq']:>3}] {ev['ts']}  {ev['level']:<5} {ev['type']:<16} "
+              f"step={ev['step']}  {json.dumps(ev['payload'], ensure_ascii=False)}")
+    print()
+    print("TOOL CALLS")
+    for call in list_tool_calls(args.run_id):
+        print(f"  step={call['step']} {call['tool_id']:<20} status={call['status']:<10} "
+              f"latency_ms={call['latency_ms']}  {call['error'] or ''}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -106,6 +133,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("show", help="muestra un agente y sus versiones")
     p.add_argument("agent_id")
     p.set_defaults(func=cmd_show)
+
+    p = sub.add_parser("trace", help="reconstruye la traza completa de un run")
+    p.add_argument("run_id")
+    p.set_defaults(func=cmd_trace)
 
     return parser
 
