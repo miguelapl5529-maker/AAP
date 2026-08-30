@@ -3,12 +3,52 @@ from pathlib import Path
 
 import pytest
 
+from aap.core.definition.models import BudgetPolicy, Policies
+from aap.core.policy.context import PolicyContext
+from aap.core.runtime.budget import BudgetManager
+
 
 @pytest.fixture(autouse=True)
 def isolated_data_dir(tmp_path, monkeypatch):
     """Cada test corre contra su propio directorio de datos: nunca toca ./data real."""
     monkeypatch.setenv("AAP_DATA_DIR", str(tmp_path / "data"))
     yield tmp_path
+
+
+def make_budget_policy(**overrides) -> BudgetPolicy:
+    defaults = dict(
+        max_steps=25, max_tool_calls=60, max_tokens=400_000,
+        max_money_usd=2.0, max_wallclock_s=900,
+    )
+    defaults.update(overrides)
+    return BudgetPolicy(**defaults)
+
+
+def make_policy_context(
+    budget_overrides: dict | None = None,
+    dry_run: bool = False,
+    clock=None,
+    **policy_overrides,
+) -> PolicyContext:
+    """Construye un PolicyContext de pruebas con defaults permisivos
+    razonables, sobreescribibles pieza a pieza."""
+    policy_overrides.setdefault(
+        "network", {"mode": "allowlist", "domains": ["*.internal.test"]}
+    )
+    policy_overrides.setdefault(
+        "database", {"domain_db": "read_write", "tables": ["companies", "signals"]}
+    )
+    policies = Policies(
+        budget=make_budget_policy(**(budget_overrides or {})),
+        **policy_overrides,
+    )
+    budget = BudgetManager(policies.budget, clock=clock) if clock else BudgetManager(policies.budget)
+    return PolicyContext(policies=policies, budget=budget, dry_run=dry_run)
+
+
+@pytest.fixture
+def policy_context_factory():
+    return make_policy_context
 
 
 @pytest.fixture
