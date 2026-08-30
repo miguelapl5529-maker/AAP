@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# estado — vive en volumen, nunca en la imagen ni en Git
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.db-journal
+
+.env
+.env.local
+*.secrets
+
+.vscode/
+.idea/

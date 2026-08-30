@@ -1,0 +1,22 @@
+services:
+  api:
+    build: .
+    image: aap:local
+    command: uvicorn aap.api.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    environment:
+      AAP_DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  worker:
+    build: .
+    image: aap:local
+    command: python -m aap.worker.main
+    environment:
+      AAP_DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
