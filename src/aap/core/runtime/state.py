@@ -85,6 +85,16 @@ def update_state(run_id: str, new_state: dict, expected_version: int) -> int:
     return next_version
 
 
+def default_state(state_schema: dict) -> dict:
+    """Solo las claves de `state_schema` que declaran un `default` explícito
+    arrancan pobladas; el resto las escribe el agente (§9.2)."""
+    return {
+        key: spec["default"]
+        for key, spec in state_schema.items()
+        if isinstance(spec, dict) and "default" in spec
+    }
+
+
 def compute_diff(old: dict, new: dict) -> dict:
     """Diff a nivel de clave, suficiente para el evento `state.updated`."""
     added = {k: v for k, v in new.items() if k not in old}

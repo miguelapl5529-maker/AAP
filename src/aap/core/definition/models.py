@@ -43,11 +43,22 @@ class Goal(StrictModel):
     failure_criteria: list[SuccessCriterion] = Field(default_factory=list)
 
 
+class FixedStep(StrictModel):
+    """Una tool con sus argumentos, literal. No es el canvas (B2, fuera de
+    V1): no hay ramas, ni condiciones, ni nodos — solo la secuencia mínima
+    que necesita un agente L0 para significar algo sin LLM (§8.2)."""
+
+    tool_id: str
+    arguments: dict = Field(default_factory=dict)
+
+
 class RuntimeConfig(StrictModel):
     autonomy_level: int = Field(ge=0, le=4)
     max_iterations: int = Field(default=10, ge=1)
     concurrency: int = Field(default=1, ge=1)
     resumable: bool = True
+    fixed_steps: list[FixedStep] = Field(default_factory=list)
+    """Solo se usa cuando autonomy_level == 0."""
 
 
 class BrainSlot(StrictModel):
