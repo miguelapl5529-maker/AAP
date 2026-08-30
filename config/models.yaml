@@ -1,0 +1,27 @@
+# Config del ENTORNO, no de ningún agente (§17.1). Cambiar esto no crea
+# una versión nueva de nada: es dónde vive físicamente cada capacidad.
+#
+# Sin AAP_OPENAI_BASE_URL configurada, api_fast queda indisponible y el
+# router degrada a mock automáticamente (§17.2): el sistema no se cae
+# porque no haya GPU ni API encendida.
+
+providers:
+  api_fast:
+    kind: openai_compatible
+    base_url: "${AAP_OPENAI_BASE_URL}"
+    api_key: "${AAP_OPENAI_API_KEY}"
+    model: "${AAP_OPENAI_MODEL}"
+    cost_per_1k: { in: 0.0002, out: 0.0008 }
+  mock:
+    kind: mock
+
+routing:
+  cheap: [api_fast, mock]
+  standard: [api_fast, mock]
+  heavy: [api_fast, mock]
+  coding: [api_fast, mock]
+  embedding: [mock]
+
+policies:
+  on_unavailable: next_in_chain
+  max_retries: 1
