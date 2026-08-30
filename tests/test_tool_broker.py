@@ -2,6 +2,7 @@ from aap.core.policy.engine import PolicyEngine
 from aap.core.tools.broker import ToolBroker
 from aap.core.tools.registry import ToolRegistry
 from aap.core.tools.spec import ToolSpec
+from aap.domain.entities import query_entities
 from aap.tools.mock.tools import build_mock_registry
 from aap.tools.mock.world import default_world
 from tests.conftest import make_policy_context
@@ -70,7 +71,7 @@ def test_duplicate_on_upsert_does_not_create_a_new_row():
     assert first.result["status"] == "created"
     assert second.result["status"] == "duplicate"
     assert second.result["id"] == first.result["id"]
-    assert len(world.table("companies")) == 1
+    assert len(query_entities("companies")) == 1
 
 
 def test_policy_deny_end_to_end():

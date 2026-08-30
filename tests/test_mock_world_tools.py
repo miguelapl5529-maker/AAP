@@ -1,3 +1,4 @@
+from aap.domain.entities import upsert_entity
 from aap.tools.mock.tools import build_mock_registry
 from aap.tools.mock.world import default_world
 
@@ -20,13 +21,12 @@ def test_search_web_respects_max_results():
 
 
 def test_db_query_filters_by_field():
-    world = default_world()
-    world.table("signals").extend(
-        [{"id": "s1", "company_id": "c1", "type": "hiring"}, {"id": "s2", "company_id": "c2", "type": "funding"}]
-    )
-    fn = build_mock_registry(world).get("db.query.mock").fn
+    upsert_entity("signals", "s1", {"company_id": "c1", "type": "hiring"})
+    upsert_entity("signals", "s2", {"company_id": "c2", "type": "funding"})
+
+    fn = build_mock_registry(default_world()).get("db.query.mock").fn
     result = fn({"table": "signals", "filter": {"company_id": "c1"}})
-    assert [r["id"] for r in result["rows"]] == ["s1"]
+    assert [r["natural_key"] for r in result["rows"]] == ["s1"]
 
 
 def test_memory_write_then_search_roundtrip():

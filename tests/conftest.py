@@ -66,10 +66,13 @@ def make_scripted_router(provider, capabilities=("cheap", "standard", "heavy", "
     return ModelRouter(config, providers={"scripted": provider})
 
 
-def build_registry_with_state(world, run_id: str, state_schema: dict) -> ToolRegistry:
+def build_registry_with_state(
+    world, run_id: str, state_schema: dict, agent_id: str = "unknown-agent",
+    agent_version_id: str | None = None,
+) -> ToolRegistry:
     """Las 6 tools del mundo simulado + la única tool que todo agente tiene
     siempre disponible: escribir en su propio run_state (§9.2)."""
-    registry = build_mock_registry(world)
+    registry = build_mock_registry(world, run_id=run_id, agent_id=agent_id, agent_version_id=agent_version_id)
     spec, fn = make_state_update_tool(run_id, state_schema)
     registry.register(spec, fn)
     return registry

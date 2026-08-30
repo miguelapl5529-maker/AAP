@@ -2,15 +2,18 @@
 tendría una integración real (§10.1) y los mismos modos de fallo que
 pide el brief: éxito, timeout, error, resultado vacío, duplicado.
 
-Esto es lo que permite probar el runtime entero sin GPU y sin servicios
-externos (§0.5).
+"Mock" describe la FUENTE de datos externa (search.web.mock no toca
+internet real), no la persistencia: db.query/db.upsert escriben de
+verdad en domain.db y memory.search/write en control.db (§9.2, §21.2),
+porque un Entity Store falso no demostraría nada sobre sobrevivir a un
+reinicio del proceso — que es justo lo que H6 tiene que probar.
 """
 
-import uuid
-
+from aap.core.memory.longterm import search_memories, write_memory
 from aap.core.tools.broker import ToolExecutionError, ToolTimeoutError
 from aap.core.tools.registry import ToolRegistry
 from aap.core.tools.spec import CostHint, ToolSpec
+from aap.domain.entities import query_entities, upsert_entity
 from aap.tools.mock.world import MockWorld
 
 
@@ -77,8 +80,8 @@ def make_search_web(world: MockWorld):
 def make_db_query(world: MockWorld):
     spec = ToolSpec(
         id="db.query.mock",
-        title="Consulta al Entity Store (mundo simulado)",
-        description="Lee filas de una tabla del dominio simulado, con filtro exacto por campo.",
+        title="Consulta al Entity Store",
+        description="Lee filas de una tabla de domain.db, con filtro exacto por campo.",
         input_schema={
             "type": "object",
             "properties": {"table": {"type": "string"}, "filter": {"type": "object"}},
@@ -95,22 +98,20 @@ def make_db_query(world: MockWorld):
         fault = _consume_fault(world, spec.id)
         if fault == "empty":
             return {"rows": []}
-        rows = world.table(args["table"])
-        filt = args.get("filter") or {}
-        matched = [r for r in rows if all(r.get(k) == v for k, v in filt.items())]
-        return {"rows": matched}
+        entities = query_entities(args["table"], args.get("filter"))
+        return {"rows": [{"id": e["id"], "natural_key": e["natural_key"], **e["values"]} for e in entities]}
 
     return spec, fn
 
 
-def make_db_upsert(world: MockWorld):
+def make_db_upsert(world: MockWorld, run_id: str | None = None, agent_version_id: str | None = None):
     spec = ToolSpec(
         id="db.upsert.mock",
-        title="Escritura en el Entity Store (mundo simulado)",
+        title="Escritura en el Entity Store",
         description=(
-            "Inserta una fila por clave natural. Si la clave ya existe, "
-            "devuelve status=duplicate en vez de crear una fila nueva — "
-            "igual que la deduplicación real del dominio."
+            "Inserta una fila en domain.db por clave natural. Si la clave ya "
+            "existe, devuelve status=duplicate en vez de crear una fila nueva "
+            "— la misma deduplicación que tendría el dominio real."
         ),
         input_schema={
             "type": "object",
@@ -133,23 +134,21 @@ def make_db_upsert(world: MockWorld):
 
     def fn(args: dict) -> dict:
         fault = _consume_fault(world, spec.id)
-        rows = world.table(args["table"])
-        natural_key = args["natural_key"]
-        existing = next((r for r in rows if r.get("natural_key") == natural_key), None)
-        if fault == "duplicate" or existing:
-            return {"status": "duplicate", "id": existing["id"] if existing else ""}
-        row_id = str(uuid.uuid4())
-        rows.append({"id": row_id, "natural_key": natural_key, **args["values"]})
-        return {"status": "created", "id": row_id}
+        if fault == "duplicate":
+            return {"status": "duplicate", "id": ""}
+        return upsert_entity(
+            args["table"], args["natural_key"], args["values"],
+            source_run_id=run_id, agent_version_id=agent_version_id,
+        )
 
     return spec, fn
 
 
-def make_memory_search(world: MockWorld):
+def make_memory_search(world: MockWorld, agent_id: str = "unknown-agent"):
     spec = ToolSpec(
         id="memory.search.mock",
-        title="Búsqueda en memoria de largo plazo (mundo simulado)",
-        description="Recupera hasta k memorias curadas por coincidencia de texto simple, sin embeddings.",
+        title="Búsqueda en memoria de largo plazo",
+        description="Recupera hasta k memorias curadas de control.db por coincidencia de texto simple, sin embeddings.",
         input_schema={
             "type": "object",
             "properties": {"query": {"type": "string"}, "k": {"type": "integer", "default": 6}},
@@ -166,21 +165,19 @@ def make_memory_search(world: MockWorld):
         fault = _consume_fault(world, spec.id)
         if fault == "empty":
             return {"memories": []}
-        query = args["query"].lower()
-        k = args.get("k", 6)
-        matches = [m for m in world.memories if query in m.get("content", "").lower()]
-        return {"memories": matches[:k]}
+        matches = search_memories(agent_id, args["query"], k=args.get("k", 6))
+        return {"memories": matches}
 
     return spec, fn
 
 
-def make_memory_write(world: MockWorld):
+def make_memory_write(world: MockWorld, agent_id: str = "unknown-agent"):
     spec = ToolSpec(
         id="memory.write.mock",
-        title="Escritura en memoria de largo plazo (mundo simulado)",
+        title="Escritura en memoria de largo plazo",
         description=(
-            "Guarda una afirmación curada con procedencia obligatoria "
-            "(source_run_id). Sujeta a política, igual que la real."
+            "Guarda una afirmación curada en control.db con procedencia "
+            "obligatoria (source_run_id). Sujeta a política, igual que la real."
         ),
         input_schema={
             "type": "object",
@@ -201,9 +198,11 @@ def make_memory_write(world: MockWorld):
 
     def fn(args: dict) -> dict:
         _consume_fault(world, spec.id)
-        mem_id = str(uuid.uuid4())
-        world.memories.append({"id": mem_id, **args})
-        return {"id": mem_id}
+        result = write_memory(
+            agent_id, args["type"], args["content"], args["source_run_id"],
+            subject=args.get("subject"),
+        )
+        return {"id": result["id"]}
 
     return spec, fn
 
@@ -243,23 +242,30 @@ def make_llm_extract(world: MockWorld):
     return spec, fn
 
 
-_FACTORIES = (
-    make_search_web,
-    make_db_query,
-    make_db_upsert,
-    make_memory_search,
-    make_memory_write,
-    make_llm_extract,
-)
-
-
-def register_all(registry: ToolRegistry, world: MockWorld) -> None:
-    for factory in _FACTORIES:
-        spec, fn = factory(world)
+def register_all(
+    registry: ToolRegistry,
+    world: MockWorld,
+    run_id: str | None = None,
+    agent_id: str = "unknown-agent",
+    agent_version_id: str | None = None,
+) -> None:
+    for spec, fn in (
+        make_search_web(world),
+        make_db_query(world),
+        make_db_upsert(world, run_id=run_id, agent_version_id=agent_version_id),
+        make_memory_search(world, agent_id=agent_id),
+        make_memory_write(world, agent_id=agent_id),
+        make_llm_extract(world),
+    ):
         registry.register(spec, fn)
 
 
-def build_mock_registry(world: MockWorld) -> ToolRegistry:
+def build_mock_registry(
+    world: MockWorld,
+    run_id: str | None = None,
+    agent_id: str = "unknown-agent",
+    agent_version_id: str | None = None,
+) -> ToolRegistry:
     registry = ToolRegistry()
-    register_all(registry, world)
+    register_all(registry, world, run_id=run_id, agent_id=agent_id, agent_version_id=agent_version_id)
     return registry

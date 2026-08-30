@@ -8,9 +8,10 @@ from aap.core.definition.validate import validate_definition
 from aap.core.events.log import list_events
 from aap.core.llm.interface import CompletionResult, ToolCall, Usage
 from aap.core.llm.providers.mock import MockProvider
+from aap.core.memory.longterm import list_memories
 from aap.core.runtime.executor import UnsupportedAutonomyLevelError, execute_run
-from aap.core.runtime.runs import get_run
-from aap.core.runtime.runs import create_run
+from aap.core.runtime.runs import create_run, get_run
+from aap.domain.entities import query_entities
 from aap.tools.mock.world import default_world
 from tests.conftest import build_registry_with_state, make_scripted_router
 
@@ -43,7 +44,10 @@ def test_m5_acceptance_full_agent_runs_end_to_end_with_mock_provider(demand_hunt
     world = default_world()
     run = create_run(definition.id, "v1", trigger="manual", input_data={"sector": "logistica"})
     run_id = run["id"]
-    registry = build_registry_with_state(world, run_id, definition.memory.state_schema)
+    registry = build_registry_with_state(
+        world, run_id, definition.memory.state_schema,
+        agent_id=definition.id, agent_version_id="v1",
+    )
 
     plan = CompletionResult(
         text=None,
@@ -84,5 +88,13 @@ def test_m5_acceptance_full_agent_runs_end_to_end_with_mock_provider(demand_hunt
         "run.finished",
     ]
 
-    assert len(world.table("signals")) == 1
-    assert len(world.memories) == 1
+    # La señal y la memoria viven en domain.db/control.db, no en el mundo
+    # simulado en RAM: eso es justo lo que H6 tenía que demostrar (§9.2, P4).
+    signals = query_entities("signals")
+    assert len(signals) == 1
+    assert signals[0]["source_run_id"] == run_id
+    assert signals[0]["agent_version_id"] == "v1"
+
+    memories = list_memories(definition.id)
+    assert len(memories) == 1
+    assert memories[0]["source_run_id"] == run_id

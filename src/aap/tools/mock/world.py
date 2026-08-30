@@ -1,6 +1,12 @@
-"""El mundo simulado (brief "MOCK WORLD"): antes de scraping real o
-servicios externos, un universo pequeño y determinista donde las tools se
-comportan como tools reales — incluidos sus fallos.
+"""El mundo simulado (brief "MOCK WORLD"): antes de scraping real,
+la única fuente de datos externos que search.web.mock conoce, más la
+cola de fallos inyectables compartida por las 6 tools.
+
+Ya no guarda tablas ni memorias en memoria (H6): db.query/db.upsert
+escriben en domain.db y memory.search/write en control.db, porque un
+Entity Store que no sobrevive a un reinicio del proceso no demuestra
+nada (§9.2, P4). `MockWorld` sigue existiendo por dos cosas que sí son
+puramente del mundo simulado: los datos de búsqueda y los fallos.
 """
 
 from dataclasses import dataclass, field
@@ -20,8 +26,6 @@ class Company:
 @dataclass
 class MockWorld:
     companies: list[Company] = field(default_factory=list)
-    tables: dict[str, list[dict]] = field(default_factory=dict)
-    memories: list[dict] = field(default_factory=list)
     fault_queues: dict[str, list[Fault]] = field(default_factory=dict)
 
     def schedule_fault(self, tool_id: str, fault: Fault) -> None:
@@ -32,9 +36,6 @@ class MockWorld:
         if queue:
             return queue.pop(0)
         return None
-
-    def table(self, name: str) -> list[dict]:
-        return self.tables.setdefault(name, [])
 
 
 def default_world() -> MockWorld:
