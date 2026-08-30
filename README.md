@@ -6,7 +6,17 @@ Diseño completo en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — léelo an
 ## Estado
 
 V1 "Laboratory" en construcción por hitos (ver `docs/ARCHITECTURE.md` §26 y el plan
-de la sesión que abrió este repo). Hito actual: **H7 — API + Worker + Docker**.
+de la sesión que abrió este repo). Hito actual: **H9 — UI Laboratory**.
+
+## UI
+
+`http://localhost:8080/` redirige al Dashboard (`/ui/`). HTML/CSS/JS planos, sin
+build ni framework (§15.1, §25: "primero fea pero funcional") — la API los sirve
+como estáticos, así que `docker compose up` no necesita una etapa de build de
+frontend. El formulario de "Crear agente" se genera recorriendo
+`GET /schema/agent-definition`: añadir un campo al schema le añade un control a
+la UI sin tocar `ui/app.js`. El Run Inspector hace polling cada 1.5s (§0.5: no
+hace falta WebSocket) y para en cuanto el run llega a un estado terminal.
 
 ## Arrancar en local (sin Docker)
 

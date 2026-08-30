@@ -6,8 +6,12 @@ tres SQLite a través de los mismos módulos que usa el CLI (P6: UI y API
 son clientes iguales del mismo control plane).
 """
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from aap.api.routers import agents, health, runs
 from aap.core.definition.repository import (
@@ -19,10 +23,23 @@ from aap.core.definition.validate import DefinitionValidationError
 from aap.core.runtime.runs import RunNotFoundError
 from aap.core.runtime.state import StateNotFoundError
 
+# Ruta relativa al directorio de trabajo (igual que config/models.yaml en
+# el router): funciona en local (cwd = raíz del repo) y en Docker
+# (WORKDIR /app, ui/ copiado ahí) sin depender de dónde pip haya
+# instalado el paquete.
+UI_DIR = Path(os.environ.get("AAP_UI_DIR", "ui"))
+
 app = FastAPI(title="AAP — Autonomous Agent Platform", version="0.1.0")
 app.include_router(health.router)
 app.include_router(agents.router)
 app.include_router(runs.router)
+
+if UI_DIR.is_dir():
+    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+
+    @app.get("/")
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/ui/")
 
 
 def _not_found(_: Request, exc: Exception) -> JSONResponse:

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AAP — Run Inspector</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">AAP <small>Autonomous Agent Platform — Laboratory</small></a>
+</header>
+<main>
+  <div id="content">Cargando…</div>
+</main>
+<script src="app.js"></script>
+<script>
+const runId = qs("id");
+const TERMINAL = new Set(["completed", "failed", "exhausted", "cancelled", "crashed"]);
+let pollHandle = null;
+
+function statusIcon(status) {
+  return TERMINAL.has(status) ? "" : '<span class="spinner"></span> ';
+}
+
+function renderPipeline(events) {
+  // El diagrama canónico del brief, coloreado según qué pasos ya ocurrieron.
+  const stages = [
+    ["run.started", "RUN STARTED"], ["llm.called", "LLM CALLED"],
+    ["decision.made", "DECISION MADE"], ["policy.evaluated", "POLICY CHECK"],
+    ["tool.called", "TOOL CALLED"], ["tool.result", "TOOL RESULT"],
+    ["state.updated", "STATE UPDATED"], ["run.finished", "RUN COMPLETED"],
+  ];
+  const seen = new Set(events.map((e) => e.type));
+  return `<div class="row" style="flex-wrap:wrap; gap: 6px;">` +
+    stages.map(([type, label]) =>
+      `<span class="badge ${seen.has(type) ? "badge-completed" : "badge-queued"}">${label}</span>`
+    ).join(" → ") + `</div>`;
+}
+
+function eventRow(ev) {
+  const toolLabel = ev.payload && ev.payload.tool_id ? ` <span class="mono">${escapeHtml(ev.payload.tool_id)}</span>` : "";
+  const statusBadge = ev.payload && ev.payload.status ? badge(ev.payload.status) : "";
+  const decisionBadge = ev.payload && ev.payload.decision ? badge(ev.payload.decision) : "";
+  return `
+    <div class="event level-${ev.level}" data-seq="${ev.seq}">
+      <div class="event-head">
+        <span><span class="event-type">${ev.type}</span>${toolLabel} ${statusBadge}${decisionBadge}</span>
+        <span class="muted">paso ${ev.step ?? "—"} · ${fmtDate(ev.ts)}</span>
+      </div>
+      <div class="event-payload mono">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</div>
+    </div>`;
+}
+
+function renderToolCalls(calls) {
+  if (calls.length === 0) return '<p class="muted">Ninguna tool invocada todavía.</p>';
+  return `
+    <table>
+      <thead><tr><th>Paso</th><th>Tool</th><th>Estado</th><th>Política</th><th>Latencia</th><th>Error</th></tr></thead>
+      <tbody>
+        ${calls.map((c) => `
+          <tr>
+            <td>${c.step ?? "—"}</td>
+            <td class="mono">${escapeHtml(c.tool_id)}</td>
+            <td>${badge(c.status)}</td>
+            <td>${badge(c.policy_decision)}</td>
+            <td>${fmtMs(c.latency_ms)}</td>
+            <td class="muted">${escapeHtml(c.error || "—")}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+async function load() {
+  const content = document.getElementById("content");
+  try {
+    const [run, events, toolCalls, state] = await Promise.all([
+      Api.get(`/runs/${encodeURIComponent(runId)}`),
+      Api.get(`/runs/${encodeURIComponent(runId)}/events`),
+      Api.get(`/runs/${encodeURIComponent(runId)}/tool_calls`),
+      Api.get(`/runs/${encodeURIComponent(runId)}/state`),
+    ]);
+
+    content.innerHTML = `
+      <div class="row between">
+        <h1>${statusIcon(run.status)}Run <span class="mono">${run.id.slice(0, 8)}</span></h1>
+        <a class="btn" href="agent.html?id=${encodeURIComponent(run.agent_id)}">← ${escapeHtml(run.agent_id)}</a>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="gap: 40px; flex-wrap: wrap;">
+          <div class="metric"><span class="value">${badge(run.status)}</span><span class="label">Estado</span></div>
+          <div class="metric"><span class="value">${run.termination_reason || "—"}</span><span class="label">Razón de terminación</span></div>
+          <div class="metric"><span class="value">${run.steps}</span><span class="label">Pasos</span></div>
+          <div class="metric"><span class="value">${run.tool_calls}</span><span class="label">Tool calls</span></div>
+          <div class="metric"><span class="value">${fmtCost(run.cost_usd)}</span><span class="label">Coste</span></div>
+          <div class="metric"><span class="value">${run.tokens_in + run.tokens_out}</span><span class="label">Tokens</span></div>
+          <div class="metric"><span class="value">${fmtMs(run.latency_ms)}</span><span class="label">Latencia</span></div>
+        </div>
+        ${run.error ? `<div class="error-banner">${escapeHtml(run.error)}</div>` : ""}
+      </div>
+
+      <h2>Pipeline</h2>
+      <div class="panel">${renderPipeline(events)}</div>
+
+      <h2>Eventos (${events.length})</h2>
+      <div class="panel"><div class="timeline">${events.map(eventRow).join("") || '<p class="muted">Sin eventos todavía.</p>'}</div></div>
+
+      <h2>Tool calls</h2>
+      <div class="panel">${renderToolCalls(toolCalls)}</div>
+
+      <h2>Estado final</h2>
+      <div class="panel"><pre class="mono">${escapeHtml(JSON.stringify(state.state, null, 2))}</pre></div>
+
+      <h2>Input / Output</h2>
+      <div class="panel">
+        <h3>Input</h3><pre class="mono">${escapeHtml(JSON.stringify(run.input, null, 2))}</pre>
+        <h3>Output</h3><pre class="mono">${escapeHtml(JSON.stringify(run.output, null, 2))}</pre>
+      </div>`;
+
+    content.querySelectorAll(".timeline .event").forEach((row) => {
+      row.addEventListener("click", () => row.classList.toggle("open"));
+    });
+
+    if (TERMINAL.has(run.status) && pollHandle) {
+      clearInterval(pollHandle);
+      pollHandle = null;
+    }
+  } catch (err) {
+    showError(content, err);
+    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+  }
+}
+
+load();
+pollHandle = setInterval(load, 1500);  // polling: suficiente para V1, sin WebSocket (§0.5 del brief)
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AAP — Crear agente</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">AAP <small>Autonomous Agent Platform — Laboratory</small></a>
+</header>
+<main>
+  <h1 id="page-title">Crear agente</h1>
+  <p class="muted">Formulario generado desde <code>GET /schema/agent-definition</code> — no hace falta escribir
+     YAML ni JSON a mano (§14.3, §15.1). Los campos avanzados de tipo objeto libre se editan como JSON.</p>
+  <div id="banner"></div>
+  <form id="agent-form" class="panel">
+    <div id="new-agent-fields"></div>
+    <div id="form-root"></div>
+    <div class="row" style="margin-top: 16px;">
+      <button type="submit" id="btn-save">Guardar</button>
+      <button type="button" class="secondary" onclick="history.back()">Cancelar</button>
+    </div>
+  </form>
+</main>
+<script src="app.js"></script>
+<script>
+const agentId = qs("agent_id");   // modo edición: crea una VERSIÓN NUEVA de un agente existente
+const isEdit = !!agentId;
+
+if (isEdit) {
+  document.getElementById("page-title").textContent = "Nueva versión: " + agentId;
+}
+
+async function init() {
+  const formRoot = document.getElementById("form-root");
+  const newAgentFields = document.getElementById("new-agent-fields");
+  try {
+    const schema = await Api.get("/schema/agent-definition");
+    let initialValue = {};
+
+    if (isEdit) {
+      const agent = await Api.get(`/agents/${encodeURIComponent(agentId)}`);
+      const versionNumber = qs("version");
+      const version = versionNumber
+        ? await Api.get(`/agents/${encodeURIComponent(agentId)}/versions/${versionNumber}`)
+        : await (async () => {
+            const versions = await Api.get(`/agents/${encodeURIComponent(agentId)}/versions`);
+            const active = versions.find((v) => v.id === agent.active_version_id);
+            return active || versions[versions.length - 1];
+          })();
+      initialValue = version.definition;
+      newAgentFields.innerHTML = `<p class="muted">Editando <strong>${escapeHtml(agent.name)}</strong>
+        (<span class="mono">${escapeHtml(agentId)}</span>) — esto crea una versión nueva, la actual queda intacta.</p>`;
+    } else {
+      newAgentFields.innerHTML = `
+        <fieldset>
+          <legend>Nuevo agente</legend>
+          <label for="new-id">Identificador (slug) <span class="req">*</span></label>
+          <input type="text" id="new-id" placeholder="p. ej. lead-discovery" pattern="[a-z0-9][a-z0-9-]*" required>
+          <label for="new-owner">Propietario</label>
+          <input type="text" id="new-owner" placeholder="tu nombre">
+        </fieldset>`;
+    }
+
+    SchemaForm.render(schema, formRoot, initialValue);
+
+    if (!isEdit) {
+      // el id del agente y el de la definición son el mismo campo lógico
+      const idInput = document.getElementById("new-id");
+      idInput.addEventListener("input", () => {
+        const target = formRoot.querySelector('[data-path="id"]');
+        if (target) target.value = idInput.value;
+        const nameInput = formRoot.querySelector('[data-path="identity.name"]');
+        if (nameInput && !nameInput.dataset.touched) nameInput.value = idInput.value;
+      });
+    }
+  } catch (err) {
+    showError(formRoot, err);
+  }
+}
+
+document.getElementById("agent-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const banner = document.getElementById("banner");
+  const btn = document.getElementById("btn-save");
+  banner.innerHTML = "";
+  btn.disabled = true;
+  try {
+    const formRoot = document.getElementById("form-root");
+    const definition = SchemaForm.collect(formRoot);
+
+    if (isEdit) {
+      definition.id = agentId;
+      const result = await Api.post(`/agents/${encodeURIComponent(agentId)}/versions`, { definition });
+      window.location.href = `agent.html?id=${encodeURIComponent(agentId)}`;
+      return;
+    }
+
+    const newId = document.getElementById("new-id").value.trim();
+    const newOwner = document.getElementById("new-owner").value.trim();
+    if (!newId) throw new Error("El identificador del agente es obligatorio.");
+    definition.id = newId;
+
+    await Api.post("/agents", { id: newId, name: definition.identity.name || newId, owner: newOwner || null });
+    await Api.post(`/agents/${encodeURIComponent(newId)}/versions`, { definition, created_by: newOwner || null });
+    window.location.href = `agent.html?id=${encodeURIComponent(newId)}`;
+  } catch (err) {
+    showError(banner, err);
+    btn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>

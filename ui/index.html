@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AAP — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">AAP <small>Autonomous Agent Platform — Laboratory</small></a>
+  <button id="btn-create">+ Crear agente</button>
+</header>
+<main>
+  <h1>Agentes</h1>
+  <div id="content" class="panel">Cargando…</div>
+</main>
+<script src="app.js"></script>
+<script>
+document.getElementById("btn-create").addEventListener("click", () => {
+  window.location.href = "create.html";
+});
+
+async function summarizeRuns(agentId) {
+  const runs = await Api.get(`/runs?agent_id=${encodeURIComponent(agentId)}`);
+  const last = runs[0];
+  const costTotal = runs.reduce((acc, r) => acc + (r.cost_usd || 0), 0);
+  return { count: runs.length, last, costTotal };
+}
+
+async function load() {
+  const content = document.getElementById("content");
+  try {
+    const agents = await Api.get("/agents");
+    if (agents.length === 0) {
+      content.innerHTML = `<p class="muted">Todavía no hay agentes. Pulsa «+ Crear agente» para hacer el primero.</p>`;
+      return;
+    }
+    const rows = await Promise.all(agents.map(async (a) => {
+      const summary = await summarizeRuns(a.id);
+      return { agent: a, summary };
+    }));
+    content.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Nombre</th><th>Estado</th><th>Versión activa</th>
+          <th>Runs</th><th>Último run</th><th>Coste acumulado</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(({ agent, summary }) => `
+            <tr class="clickable" data-id="${agent.id}">
+              <td><strong>${escapeHtml(agent.name)}</strong><br><span class="muted mono">${escapeHtml(agent.id)}</span></td>
+              <td>${badge(agent.status)}</td>
+              <td>${agent.active_version_id ? "activa" : '<span class="muted">sin versión activa</span>'}</td>
+              <td>${summary.count}</td>
+              <td>${summary.last ? badge(summary.last.status) + " " + fmtDate(summary.last.started_at) : "—"}</td>
+              <td>${fmtCost(summary.costTotal)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>`;
+    content.querySelectorAll("tr.clickable").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        window.location.href = `agent.html?id=${encodeURIComponent(tr.dataset.id)}`;
+      });
+    });
+  } catch (err) {
+    showError(content, err);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

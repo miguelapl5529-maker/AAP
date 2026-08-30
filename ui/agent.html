@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AAP — Agente</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">AAP <small>Autonomous Agent Platform — Laboratory</small></a>
+</header>
+<main>
+  <div id="content">Cargando…</div>
+</main>
+<script src="app.js"></script>
+<script>
+const agentId = qs("id");
+
+async function runNow(versionNumber) {
+  const body = { input: {} };
+  if (versionNumber) body.version = Number(versionNumber);
+  const resp = await Api.post(`/agents/${encodeURIComponent(agentId)}/runs`, body);
+  window.location.href = `run.html?id=${encodeURIComponent(resp.run_id)}`;
+}
+
+async function duplicateAgent() {
+  const newId = prompt("Identificador del nuevo agente (slug):");
+  if (!newId) return;
+  const newName = prompt("Nombre del nuevo agente:", newId) || newId;
+  try {
+    await Api.post(`/agents/${encodeURIComponent(agentId)}/duplicate`, { new_id: newId, new_name: newName });
+    window.location.href = `create.html?agent_id=${encodeURIComponent(newId)}`;
+  } catch (err) {
+    alert("No se pudo duplicar: " + err.message);
+  }
+}
+
+async function promote(version) {
+  await Api.post(`/agents/${encodeURIComponent(agentId)}/versions/${version}/promote`);
+  load();
+}
+
+async function archive(version) {
+  if (!confirm(`¿Archivar la versión ${version}? El agente se quedará sin versión activa si era esta.`)) return;
+  await Api.post(`/agents/${encodeURIComponent(agentId)}/versions/${version}/archive`);
+  load();
+}
+
+async function compareVersions() {
+  const a = document.getElementById("diff-a").value;
+  const b = document.getElementById("diff-b").value;
+  const result = document.getElementById("diff-result");
+  result.innerHTML = "Comparando…";
+  try {
+    const { diff } = await Api.get(`/agents/${encodeURIComponent(agentId)}/versions/${a}/diff/${b}`);
+    const rows = (obj, cls) => Object.entries(obj).map(([k, v]) =>
+      `<tr><td class="mono">${escapeHtml(k)}</td><td class="${cls}">${escapeHtml(JSON.stringify(v))}</td></tr>`);
+    const changedRows = Object.entries(diff.changed).map(([k, v]) =>
+      `<tr><td class="mono">${escapeHtml(k)}</td><td class="mono">${escapeHtml(JSON.stringify(v.from))} → ${escapeHtml(JSON.stringify(v.to))}</td></tr>`);
+    const allRows = [...changedRows, ...rows(diff.added, "mono"), ...rows(diff.removed, "mono")];
+    if (allRows.length === 0) {
+      result.innerHTML = '<p class="ok-banner">v' + a + ' y v' + b + ' son idénticas.</p>';
+      return;
+    }
+    result.innerHTML = `<table><thead><tr><th>Campo</th><th>Cambio (v${a} → v${b})</th></tr></thead>
+      <tbody>${allRows.join("")}</tbody></table>`;
+  } catch (err) {
+    showError(result, err);
+  }
+}
+
+function renderDefinitionSummary(def) {
+  return `
+    <div class="row" style="gap: 40px; flex-wrap: wrap;">
+      <div class="metric"><span class="value">${def.runtime.autonomy_level}</span><span class="label">Autonomy Level</span></div>
+      <div class="metric"><span class="value">${def.brain.primary.capability}</span><span class="label">Capacidad principal</span></div>
+      <div class="metric"><span class="value">${def.tools.length}</span><span class="label">Tools</span></div>
+      <div class="metric"><span class="value">${fmtCost(def.policies.budget.max_money_usd)}</span><span class="label">Presupuesto máx.</span></div>
+      <div class="metric"><span class="value">${def.policies.budget.max_steps}</span><span class="label">Máx. pasos</span></div>
+    </div>
+    <h3>Objetivo</h3>
+    <p>${escapeHtml(def.goal.statement)}</p>
+    <h3>Tools declaradas</h3>
+    <p>${def.tools.map((t) => `<span class="badge badge-active">${escapeHtml(t.id)}</span>`).join(" ") || '<span class="muted">ninguna</span>'}</p>
+    <h3>Política de red</h3>
+    <p class="mono">${escapeHtml(def.policies.network.mode)} ${def.policies.network.domains.join(", ")}</p>`;
+}
+
+async function load() {
+  const content = document.getElementById("content");
+  try {
+    const [agent, versions, runs] = await Promise.all([
+      Api.get(`/agents/${encodeURIComponent(agentId)}`),
+      Api.get(`/agents/${encodeURIComponent(agentId)}/versions`),
+      Api.get(`/runs?agent_id=${encodeURIComponent(agentId)}`),
+    ]);
+    const activeVersion = versions.find((v) => v.id === agent.active_version_id);
+
+    content.innerHTML = `
+      <div class="row between">
+        <h1>${escapeHtml(agent.name)} <span class="muted mono">${escapeHtml(agent.id)}</span></h1>
+        <div class="row">
+          <button id="btn-run" ${activeVersion ? "" : "disabled title='sin versión activa'"}>▶ Ejecutar</button>
+          <button class="secondary" id="btn-duplicate">⧉ Duplicar</button>
+          <button class="secondary" id="btn-edit">✎ Nueva versión</button>
+        </div>
+      </div>
+      ${activeVersion ? `<div class="panel">${renderDefinitionSummary(activeVersion.definition)}</div>`
+                       : `<div class="panel muted">Este agente no tiene ninguna versión activa.</div>`}
+
+      <h2>Versiones</h2>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Versión</th><th>Estado</th><th>Creada</th><th>Notas</th><th></th></tr></thead>
+          <tbody>
+            ${versions.map((v) => `
+              <tr>
+                <td>v${v.version}</td>
+                <td>${badge(v.status)}</td>
+                <td>${fmtDate(v.created_at)}</td>
+                <td class="muted">${escapeHtml(v.notes || "—")}</td>
+                <td class="row">
+                  ${v.status !== "active" ? `<button class="secondary" onclick="promote(${v.version})">Promocionar</button>` : ""}
+                  ${v.status !== "archived" ? `<button class="secondary" onclick="archive(${v.version})">Archivar</button>` : ""}
+                  <button class="secondary" onclick="runNow(${v.version})">Ejecutar esta</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      ${versions.length >= 2 ? `
+      <h2>Comparar versiones</h2>
+      <div class="panel">
+        <div class="row">
+          <select id="diff-a">${versions.map((v) => `<option value="${v.version}">v${v.version}</option>`).join("")}</select>
+          <span class="muted">vs</span>
+          <select id="diff-b">${versions.map((v) => `<option value="${v.version}" ${v.version === versions[versions.length - 1].version ? "selected" : ""}>v${v.version}</option>`).join("")}</select>
+          <button class="secondary" id="btn-diff">Comparar</button>
+        </div>
+        <div id="diff-result"></div>
+      </div>` : ""}
+
+      <h2>Runs recientes</h2>
+      <div class="panel">
+        ${runs.length === 0 ? '<p class="muted">Todavía no se ha ejecutado este agente.</p>' : `
+        <table>
+          <thead><tr><th>Run</th><th>Estado</th><th>Iniciado</th><th>Pasos</th><th>Tool calls</th><th>Coste</th><th>Latencia</th></tr></thead>
+          <tbody>
+            ${runs.map((r) => `
+              <tr class="clickable" data-run="${r.id}">
+                <td class="mono">${r.id.slice(0, 8)}</td>
+                <td>${badge(r.status)}</td>
+                <td>${fmtDate(r.started_at)}</td>
+                <td>${r.steps}</td>
+                <td>${r.tool_calls}</td>
+                <td>${fmtCost(r.cost_usd)}</td>
+                <td>${fmtMs(r.latency_ms)}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`}
+      </div>`;
+
+    document.getElementById("btn-run").addEventListener("click", () => runNow());
+    document.getElementById("btn-duplicate").addEventListener("click", duplicateAgent);
+    document.getElementById("btn-edit").addEventListener("click", () => {
+      window.location.href = `create.html?agent_id=${encodeURIComponent(agentId)}`;
+    });
+    const diffBtn = document.getElementById("btn-diff");
+    if (diffBtn) diffBtn.addEventListener("click", compareVersions);
+    content.querySelectorAll("tr.clickable").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        window.location.href = `run.html?id=${encodeURIComponent(tr.dataset.run)}`;
+      });
+    });
+  } catch (err) {
+    showError(content, err);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
