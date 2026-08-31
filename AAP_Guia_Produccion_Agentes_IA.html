@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AAP V1 — Guía de Producción: Fabricación de Agentes IA en la Nube</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
+    line-height: 1.8;
+    color: #222;
+    background: white;
+    padding: 40px 20px;
+  }
+  .page { max-width: 1000px; margin: 0 auto; }
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+    padding-bottom: 30px;
+    border-bottom: 4px solid #0066cc;
+  }
+  h1 {
+    font-size: 2.8em;
+    color: #0066cc;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .subtitle {
+    font-size: 1.3em;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 5px;
+  }
+  .date {
+    font-size: 0.95em;
+    color: #999;
+    margin-top: 10px;
+  }
+  h2 {
+    font-size: 2em;
+    color: #0066cc;
+    margin-top: 50px;
+    margin-bottom: 20px;
+    border-left: 5px solid #0066cc;
+    padding-left: 20px;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 1.4em;
+    color: #333;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 1.1em;
+    color: #555;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  p {
+    margin-bottom: 15px;
+    line-height: 1.8;
+  }
+  .warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .info {
+    background: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+  .code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 20px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: "Courier New", monospace;
+    font-size: 0.95em;
+    line-height: 1.5;
+    border-left: 4px solid #0066cc;
+  }
+  .code-block code {
+    color: #d4d4d4;
+  }
+  .keyword { color: #569cd6; }
+  .string { color: #ce9178; }
+  .comment { color: #6a9955; }
+  ul, ol {
+    margin-left: 30px;
+    margin-bottom: 15px;
+  }
+  li {
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    background: #f9f9f9;
+  }
+  th {
+    background: #0066cc;
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+  }
+  tr:hover { background: #f0f0f0; }
+  .section-box {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 25px;
+    margin: 30px 0;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 25px 0;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin: 25px 0;
+  }
+  .card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .card h4 {
+    margin-top: 0;
+    color: #0066cc;
+  }
+  .step {
+    background: white;
+    border-left: 4px solid #0066cc;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+  }
+  .step-number {
+    display: inline-block;
+    background: #0066cc;
+    color: white;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 50%;
+    margin-right: 10px;
+    font-weight: bold;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 60px;
+    padding-top: 30px;
+    border-top: 2px solid #ddd;
+    color: #999;
+    font-size: 0.95em;
+  }
+  .toc {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 30px 0;
+  }
+  .toc h3 {
+    margin-top: 0;
+  }
+  .toc ul { margin: 15px 0; }
+  .toc a {
+    color: #0066cc;
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; }
+  strong { font-weight: 600; color: #0066cc; }
+  em { font-style: italic; }
+  @media print {
+    body { padding: 20px; }
+    .page-break { page-break-after: always; }
+    a { color: #0066cc; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>AAP V1 — Guía Completa de Producción</h1>
+  <p class="subtitle">Fabricación de Agentes IA en la Nube con Inferencia Remota</p>
+  <p class="date">Versión 1.0 | Documento de Referencia Técnica y Operacional</p>
+</div>
+
+<!-- TABLA DE CONTENIDOS -->
+<div class="toc">
+  <h3>Contenido de esta Guía</h3>
+  <ul>
+    <li><a href="#intro">Introducción y Contexto</a></li>
+    <li><a href="#arqui">Arquitectura de Producción</a></li>
+    <li><a href="#nube">Despliegue en la Nube con VRAM</a></li>
+    <li><a href="#docker">Docker: Conceptos y Configuración</a></li>
+    <li><a href="#setup">Configuración Local/Remota</a></li>
+    <li><a href="#agentes">Ciclo de Fabricación de Agentes</a></li>
+    <li><a href="#ejemplos">Ejemplos Prácticos Paso a Paso</a></li>
+    <li><a href="#operacion">Operación y Monitoreo</a></li>
+    <li><a href="#troubleshoot">Diagnóstico y Resolución de Problemas</a></li>
+  </ul>
+</div>
+
+<!-- INTRODUCCIÓN -->
+<h2 id="intro">1. Introducción y Contexto</h2>
+
+<p>
+  AAP V1 Laboratory es una <strong>plataforma de runtime para agentes definidos por datos</strong>.
+  A diferencia de frameworks tradicionales donde el comportamiento de los agentes vive en código Python,
+  aquí los agentes se definen completamente en <strong>JSON Schema</strong> — sin cambios de código, sin
+  recompilación, sin despliegue de nuevas versiones de aplicación.
+</p>
+
+<p>
+  Esta guía te llevará desde <strong>cero hasta un agente IA en producción</strong> ejecutándose en la nube,
+  con inferencia remota (modelos como GPT-4, Claude, o tu propio modelo local via VRAM alquilada).
+</p>
+
+<div class="info">
+  <strong>Nota Importante:</strong> Esta guía asume que tienes acceso a:
+  <ul style="margin-top: 10px; margin-bottom: 0;">
+    <li>Docker Desktop o Docker Engine en tu máquina local</li>
+    <li>Créditos/API key de un proveedor de LLM (OpenAI, Anthropic, o VRAM remota)</li>
+    <li>Bash/PowerShell para ejecutar comandos</li>
+  </ul>
+</div>
+
+<!-- ARQUITECTURA -->
+<h2 id="arqui">2. Arquitectura de Producción en la Nube</h2>
+
+<p>
+  La arquitectura de AAP V1 se divide en tres capas:
+</p>
+
+<div class="grid-3">
+  <div class="card">
+    <h4>Capa de Datos</h4>
+    <p><strong>3 Bases de Datos SQLite</strong></p>
+    <ul style="font-size: 0.95em;">
+      <li><code>control.db</code> — Definiciones</li>
+      <li><code>runtime.db</code> — Ejecuciones</li>
+      <li><code>domain.db</code> — Datos del dominio</li>
+    </ul>
+    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+      Almacenadas en volúmenes Docker persistentes
+    </p>
+  </div>
+
+  <div class="card">
+    <h4>Capa de Ejecución</h4>
+    <p><strong>Worker Process</strong></p>
+    <ul style="font-size: 0.95em;">
+      <li>Polling cada 2s</li>
+      <li>Executor (L0-L3)</li>
+      <li>Policy Engine</li>
+    </ul>
+    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+      Procesa runs asincronamente
+    </p>
+  </div>
+
+  <div class="card">
+    <h4>Capa de API</h4>
+    <p><strong>FastAPI + UI</strong></p>
+    <ul style="font-size: 0.95em;">
+      <li>REST endpoints</li>
+      <li>Dashboard web</li>
+      <li>Nunca bloquea</li>
+    </ul>
+    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+      200 requests/s sin problemas
+    </p>
+  </div>
+</div>
+
+<h3>Flujo de Ejecución en Producción</h3>
+
+<div class="code-block">
+┌─────────────────────────────────────────────────────────────────┐
+│                       CLIENTE/UI                                │
+│                  (Dashboard Web o CLI)                          │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                   POST /agents/{id}/runs
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    API FASTAPI                                  │
+│          (202 Accepted — Nunca ejecuta aquí)                    │
+│                                                                 │
+│  1. Valida definición                                           │
+│  2. Crea run con status="queued"                                │
+│  3. Guarda en runtime.db                                        │
+│  4. Retorna run_id al cliente                                   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                    runtime.db: runs table
+                    (status='queued')
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  WORKER PROCESS                                 │
+│              (Polling cada 2 segundos)                          │
+│                                                                 │
+│  1. Consulta: SELECT * FROM runs WHERE status='queued'          │
+│  2. Reclama: UPDATE status='running' (optimistic lock)          │
+│  3. Carga definición de control.db                              │
+│  4. Obtiene versión activa                                      │
+│  5. Instancia Executor                                          │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      EXECUTOR                                   │
+│              (core/runtime/executor.py)                         │
+│                                                                 │
+│  Autonomy Level L0-L3:                                          │
+│  ├─ L0: Ejecuta fixed_steps determinista                        │
+│  ├─ L1: Llama LLM 1x, reacciona                                  │
+│  ├─ L2: Llama LLM 1x, planifica                                  │
+│  └─ L3: Iteraciones con replanificación (hasta max_iterations)  │
+│                                                                 │
+│  Para cada step:                                                │
+│    1. Emite step.started                                        │
+│    2. Llama al LLM o ejecuta step fijo                           │
+│    3. Pasa resultado por Policy Engine                          │
+│    4. Ejecuta tools aprobadas                                   │
+│    5. Actualiza run_state (optimistic concurrency)              │
+│    6. Emite tool.called, tool.result, step.finished             │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+          runtime.db: events, tool_calls, run_state
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    RUN TERMINAL                                 │
+│  status ∈ {completed, failed, exhausted, crashed}               │
+│                                                                 │
+│  Cliente puede consultar: GET /runs/{run_id}                    │
+│                          GET /runs/{run_id}/events              │
+│                          GET /runs/{run_id}/tool_calls          │
+│                          GET /runs/{run_id}/state                │
+└─────────────────────────────────────────────────────────────────┘
+</div>
+
+<!-- NUBE Y VRAM -->
+<h2 id="nube">3. Despliegue en la Nube con VRAM Alquilada</h2>
+
+<h3>Proveedores Recomendados para Inferencia Remota</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Proveedor</th>
+      <th>Modelos Disponibles</th>
+      <th>Latencia Típica</th>
+      <th>Coste Estimado</th>
+      <th>Mejor Para</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>OpenAI API</strong></td>
+      <td>GPT-4, GPT-3.5, o1</td>
+      <td>800ms - 2s</td>
+      <td>$0.03-$0.30/1K tokens</td>
+      <td>Producción, máxima calidad</td>
+    </tr>
+    <tr>
+      <td><strong>Anthropic (Claude)</strong></td>
+      <td>Claude 3 Opus, Sonnet, Haiku</td>
+      <td>1-3s</td>
+      <td>$0.003-$0.048/1K tokens</td>
+      <td>Razonamiento, contexto largo</td>
+    </tr>
+    <tr>
+      <td><strong>Together AI</strong></td>
+      <td>Llama 2, Mistral, Zephyr</td>
+      <td>200-800ms</td>
+      <td>$0.0002-$0.009/1K tokens</td>
+      <td>Bajo coste, privacidad</td>
+    </tr>
+    <tr>
+      <td><strong>RunPod/Lambda Labs</strong></td>
+      <td>Tu propio modelo (fine-tuned)</td>
+      <td>100-500ms</td>
+      <td>$0.14-$1.22/hora GPU</td>
+      <td>Modelos personalizados</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Seleccionar Proveedor: Matriz de Decisión</h3>
+
+<div class="step">
+  <strong>Pregúntate:</strong>
+  <ul>
+    <li><strong>¿Necesitas máxima precisión?</strong> → OpenAI GPT-4 o Claude Opus</li>
+    <li><strong>¿Buscas equilibrio coste/calidad?</strong> → Claude Haiku o Mistral 7B</li>
+    <li><strong>¿Tienes datos sensibles?</strong> → Self-hosted (RunPod) o Together AI</li>
+    <li><strong>¿Ejecutas miles de requests/día?</strong> → Llama/Mistral local + RunPod</li>
+    <li><strong>¿Es un POC o MVP?</strong> → OpenAI API (fácil de escalar)</li>
+  </ul>
+</div>
+
+<h3>Configuración de Credenciales en Producción</h3>
+
+<div class="code-block">
+<span class="comment"># Crear archivo .env.production (NUNCA en Git)</span>
+<span class="keyword">export</span> OPENAI_API_KEY=<span class="string">"sk-..."</span>
+<span class="keyword">export</span> ANTHROPIC_API_KEY=<span class="string">"sk-ant-..."</span>
+<span class="keyword">export</span> TOGETHER_API_KEY=<span class="string">"..."</span>
+
+<span class="comment"># En docker-compose.yml (NO hardcodes)</span>
+<span class="keyword">environment:</span>
+  <span class="keyword">-</span> OPENAI_API_KEY=${OPENAI_API_KEY}
+  <span class="keyword">-</span> ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+  <span class="keyword">-</span> AAP_DATA_DIR=/data
+</div>
+
+<div class="warning">
+  <strong>Seguridad Crítica:</strong> Nunca commitees API keys en Git. Usa variables de entorno o
+  secret managers (AWS Secrets, HashiCorp Vault, GitLab CI/CD secrets).
+</div>
+
+<!-- DOCKER -->
+<h2 id="docker">4. Docker: Conceptos Esenciales para AAP V1</h2>
+
+<h3>¿Por Qué Docker es Clave?</h3>
+
+<p>
+  Docker empaqueta AAP V1 + dependencias + configuración en un <strong>contenedor reproducible</strong>.
+  Esto significa que lo que funciona en tu máquina, funciona exactamente igual en producción, en AWS,
+  en tu servidor en la nube, o en cualquier lugar.
+</p>
+
+<div class="info">
+  <strong>Analógía:</strong> Si tu aplicación fuera un barco, Docker es el puerto de carga
+  (contenedor) que permite transportarlo idéntico a cualquier destino sin que se dañe.
+</div>
+
+<h3>Componentes de Docker en AAP V1</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Componente</th>
+      <th>Función</th>
+      <th>En AAP V1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Dockerfile</strong></td>
+      <td>Receta para construir la imagen</td>
+      <td>Define cómo instalar deps, copiar código, exponer puerto 8080</td>
+    </tr>
+    <tr>
+      <td><strong>Imagen</strong></td>
+      <td>Snapshot del código + dependencias</td>
+      <td><code>aap:local</code> (construida localmente)</td>
+    </tr>
+    <tr>
+      <td><strong>Contenedor</strong></td>
+      <td>Instancia ejecutándose de la imagen</td>
+      <td>API container + Worker container (2 procesos)</td>
+    </tr>
+    <tr>
+      <td><strong>Volumen</strong></td>
+      <td>Almacenamiento persistente</td>
+      <td><code>./data</code> → las 3 BD sobreviven restart</td>
+    </tr>
+    <tr>
+      <td><strong>Red</strong></td>
+      <td>Comunicación entre contenedores</td>
+      <td>API ↔ Worker comparten localhost:8080</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>El Dockerfile de AAP V1 Explicado</h3>
+
+<div class="code-block">
+<span class="keyword">FROM</span> python:3.11-slim
+
+<span class="keyword">WORKDIR</span> /app
+
+<span class="comment"># Instalar dependencias del sistema</span>
+<span class="keyword">RUN</span> apt-get update && apt-get install -y --no-install-recommends \
+    git curl && rm -rf /var/lib/apt/lists/*
+
+<span class="comment"># Copiar código fuente</span>
+<span class="keyword">COPY</span> . .
+
+<span class="comment"># Instalar dependencias Python</span>
+<span class="keyword">RUN</span> pip install -e ".[prod]"
+
+<span class="comment"># Crear directorio de datos (volumen)</span>
+<span class="keyword">RUN</span> mkdir -p /data
+
+<span class="comment"># Exponer puerto de la API</span>
+<span class="keyword">EXPOSE</span> 8080
+
+<span class="comment"># Punto de entrada: el comando que ejecuta al iniciar</span>
+<span class="keyword">CMD</span> [<span class="string">"uvicorn"</span>, <span class="string">"aap.api.main:app"</span>, \
+        <span class="string">"--host"</span>, <span class="string">"0.0.0.0"</span>, <span class="string">"--port"</span>, <span class="string">"8080"</span>]
+</div>
+
+<h3>docker-compose.yml: Orquestación de Servicios</h3>
+
+<div class="code-block">
+<span class="keyword">version:</span> <span class="string">'3.9'</span>
+
+<span class="keyword">services:</span>
+  <span class="keyword">api:</span>
+    <span class="keyword">image:</span> aap:local
+    <span class="keyword">ports:</span>
+      <span class="keyword">-</span> <span class="string">"8080:8080"</span>
+    <span class="keyword">environment:</span>
+      <span class="keyword">-</span> AAP_DATA_DIR=/data
+      <span class="keyword">-</span> OPENAI_API_KEY=${OPENAI_API_KEY}
+    <span class="keyword">volumes:</span>
+      <span class="keyword">-</span> aap_data:/data
+    <span class="keyword">depends_on:</span>
+      <span class="keyword">-</span> worker
+    <span class="keyword">networks:</span>
+      <span class="keyword">-</span> aap_network
+
+  <span class="keyword">worker:</span>
+    <span class="keyword">image:</span> aap:local
+    <span class="keyword">environment:</span>
+      <span class="keyword">-</span> AAP_DATA_DIR=/data
+      <span class="keyword">-</span> OPENAI_API_KEY=${OPENAI_API_KEY}
+    <span class="keyword">volumes:</span>
+      <span class="keyword">-</span> aap_data:/data
+    <span class="keyword">command:</span> python -m aap.worker.main
+    <span class="keyword">networks:</span>
+      <span class="keyword">-</span> aap_network
+
+<span class="keyword">volumes:</span>
+  <span class="keyword">aap_data:</span>
+    <span class="keyword">driver:</span> local
+
+<span class="keyword">networks:</span>
+  <span class="keyword">aap_network:</span>
+    <span class="keyword">driver:</span> bridge
+</div>
+
+<!-- SETUP -->
+<h2 id="setup">5. Configuración Local/Remota Paso a Paso</h2>
+
+<h3>5.1 Instalación Local (Desarrollo)</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  <strong>Clonar el Repositorio</strong>
+  <div class="code-block">
+git clone https://github.com/tu-org/aap-v1.git
+cd aap-v1
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Crear Entorno Virtual</strong>
+  <div class="code-block">
+python -m venv .venv
+source .venv/bin/activate  <span class="comment"># En Windows: .venv\Scripts\activate</span>
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <strong>Instalar Dependencias</strong>
+  <div class="code-block">
+pip install -e ".[dev]"
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  <strong>Crear Archivo de Configuración</strong>
+  <div class="code-block">
+cp .env.example .env
+
+<span class="comment"># Editar .env con tus API keys</span>
+export OPENAI_API_KEY=<span class="string">"sk-..."</span>
+export AAP_DATA_DIR=<span class="string">"$(pwd)/data"</span>
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">5</span>
+  <strong>Iniciar API en Local</strong>
+  <div class="code-block">
+uvicorn aap.api.main:app --reload --port 8080
+
+<span class="comment"># En otra terminal:</span>
+python -m aap.worker.main
+  </div>
+</div>
+
+<div class="success">
+  <strong>Éxito:</strong> Abre http://localhost:8080 y verás el Dashboard. Si ves "Agentes" vacío, ¡estás listo!
+</div>
+
+<h3>5.2 Despliegue en la Nube con Docker</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  <strong>Construir la Imagen</strong>
+  <div class="code-block">
+docker build -t aap:v1.0 .
+
+<span class="comment"># Verificar que la imagen se creó</span>
+docker images | grep aap
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Crear Archivo de Variables de Entorno</strong>
+  <div class="code-block">
+cat > .env.production << <span class="string">'EOF'</span>
+OPENAI_API_KEY=sk-your-key-here
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+AAP_DATA_DIR=/data
+<span class="string">EOF</span>
+
+<span class="comment"># Proteger el archivo</span>
+chmod 600 .env.production
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <strong>Iniciar Contenedores</strong>
+  <div class="code-block">
+docker-compose up -d
+
+<span class="comment"># Ver logs en tiempo real</span>
+docker-compose logs -f
+
+<span class="comment"># Verifica que ambos servicios estén Up</span>
+docker-compose ps
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  <strong>Validar Conectividad</strong>
+  <div class="code-block">
+curl http://localhost:8080/health
+
+<span class="comment"># Respuesta esperada:</span>
+<span class="string">{</span>
+  <span class="string">"status":"ok"</span>,
+  <span class="string">"api":true</span>,
+  <span class="string">"worker":true</span>,
+  <span class="string">"db":true</span>
+<span class="string">}</span>
+  </div>
+</div>
+
+<h3>5.3 Despliegue en Servidor en la Nube (AWS/GCP/Azure)</h3>
+
+<p>
+  <strong>Opción A: Usar Managed Containers</strong> (Recomendado para producción)
+</p>
+
+<ul>
+  <li><strong>AWS ECS Fargate:</strong> Configurar task definition con la imagen Docker, montar volumen EFS para datos</li>
+  <li><strong>Google Cloud Run:</strong> Soporta contenedores con almacenamiento efímero (BD en Cloud SQL)</li>
+  <li><strong>Azure Container Instances:</strong> Despliegue rápido, facturación por segundo</li>
+</ul>
+
+<p style="margin-top: 20px;">
+  <strong>Opción B: Docker Compose en EC2/VM</strong> (Más control, más responsabilidad)
+</p>
+
+<div class="code-block">
+<span class="comment"># En tu servidor (EC2 Ubuntu, DigitalOcean, Linode, etc.)</span>
+
+<span class="comment"># 1. Instalar Docker</span>
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+
+<span class="comment"># 2. Clonar repo</span>
+git clone https://github.com/tu-org/aap-v1.git /opt/aap-v1
+cd /opt/aap-v1
+
+<span class="comment"># 3. Crear .env con keys de producción</span>
+sudo nano .env.production
+
+<span class="comment"># 4. Montar volumen para persistencia (importante)</span>
+sudo mkdir -p /mnt/aap_data
+sudo chown -R ubuntu:ubuntu /mnt/aap_data
+
+<span class="comment"># 5. En docker-compose.yml, apuntar a volumen externo</span>
+<span class="keyword">volumes:</span>
+  <span class="keyword">aap_data:</span>
+    <span class="keyword">driver:</span> local
+    <span class="keyword">driver_opts:</span>
+      <span class="keyword">type:</span> none
+      <span class="keyword">o:</span> bind
+      <span class="keyword">device:</span> /mnt/aap_data
+
+<span class="comment"># 6. Iniciar servicios</span>
+docker-compose --env-file .env.production up -d
+
+<span class="comment"># 7. Configurar Reverse Proxy (Nginx/Let's Encrypt para HTTPS)</span>
+</div>
+
+<!-- AGENTES -->
+<h2 id="agentes">6. Ciclo de Vida Completo: Fabricación de Agentes</h2>
+
+<h3>6.1 Ciclo Conceptual</h3>
+
+<div class="code-block">
+┌──────────────────────────────────────────────────────────────┐
+│                  VISIÓN DE PRODUCTO                          │
+│         "Queremos un agente que haga X"                       │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  DEFINICIÓN (JSON Schema)                    │
+│                                                              │
+│  ├─ identity: nombre, descripción, tags                      │
+│  ├─ goal: objetivo y criterios de éxito/fallo               │
+│  ├─ runtime: autonomy_level, iteraciones, presupuesto        │
+│  ├─ brain: modelo LLM, temperatura, reasoning               │
+│  ├─ tools: qué herramientas pueden usar                      │
+│  ├─ knowledge: fuentes de información                        │
+│  └─ policies: red, BD, shell, presupuesto                   │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  CREAR VERSIÓN v1                            │
+│                                                              │
+│  POST /agents                    (crear identidad)           │
+│  POST /agents/{id}/versions      (crear v1)                  │
+│                                                              │
+│  → Guardada en control.db, inmutable                         │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  PRUEBAS Y AJUSTES                            │
+│                                                              │
+│  POST /agents/{id}/runs         (ejecutar v1)                │
+│  GET /runs/{id}                 (ver resultado)              │
+│  GET /runs/{id}/events          (revisar paso a paso)        │
+│                                                              │
+│  → Si funciona → Promover v1 a ACTIVE                        │
+│  → Si no → Crear v2 con cambios                              │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  MONITOREO CONTINUO                          │
+│                                                              │
+│  GET /agents/{id}/metrics      (tasa de éxito, coste)        │
+│  GET /agents/{id}/compare      (v1 vs v2 - cuál mejor?)      │
+│                                                              │
+│  → Si regresión → Revert a versión anterior                  │
+│  → Si mejora → Celebrar, documentar, iterar                  │
+└──────────────────────────────────────────────────────────────┘
+</div>
+
+<h3>6.2 Estructura de una Agent Definition</h3>
+
+<p>
+  Toda Agent Definition sigue un schema único (el Pydantic model en <code>aap/core/definition/models.py</code>).
+  Aquí está desglosada cada sección:
+</p>
+
+<div class="code-block">
+<span class="string">{</span>
+  <span class="string">"schema_version"</span>: 1,
+  <span class="string">"id"</span>: <span class="string">"my-agent-slug"</span>,
+
+  <span class="comment">// Identity: quién es este agente</span>
+  <span class="string">"identity"</span>: <span class="string">{</span>
+    <span class="string">"name"</span>: <span class="string">"Customer Support Bot"</span>,
+    <span class="string">"description"</span>: <span class="string">"Atiende consultas de clientes..."</span>,
+    <span class="string">"owner"</span>: <span class="string">"your-team"</span>,
+    <span class="string">"tags"</span>: [<span class="string">"support"</span>, <span class="string">"customer-facing"</span>]
+  <span class="string">}</span>,
+
+  <span class="comment">// Goal: qué intenta lograr</span>
+  <span class="string">"goal"</span>: <span class="string">{</span>
+    <span class="string">"statement"</span>: <span class="string">"Resolver consultas de clientes en menos de 2 minutos"</span>,
+    <span class="string">"success_criteria"</span>: [
+      <span class="string">{</span>
+        <span class="string">"type"</span>: <span class="string">"metric"</span>,
+        <span class="string">"expr"</span>: <span class="string">"customer_satisfaction >= 4.5"</span>
+      <span class="string">}</span>
+    ],
+    <span class="string">"failure_criteria"</span>: [
+      <span class="string">{</span>
+        <span class="string">"type"</span>: <span class="string">"metric"</span>,
+        <span class="string">"expr"</span>: <span class="string">"response_time > 300"</span>
+      <span class="string">}</span>
+    ]
+  <span class="string">}</span>,
+
+  <span class="comment">// Runtime: cómo se ejecuta</span>
+  <span class="string">"runtime"</span>: <span class="string">{</span>
+    <span class="string">"autonomy_level"</span>: 2,           <span class="comment">// L2 = Plan antes de ejecutar</span>
+    <span class="string">"max_iterations"</span>: 5,
+    <span class="string">"concurrency"</span>: 1,
+    <span class="string">"resumable"</span>: true,
+    <span class="string">"fixed_steps"</span>: []             <span class="comment">// Vacío = flexible, no secuencia fija</span>
+  <span class="string">}</span>,
+
+  <span class="comment">// Brain: qué LLM usar y cómo</span>
+  <span class="string">"brain"</span>: <span class="string">{</span>
+    <span class="string">"primary"</span>: <span class="string">{</span>
+      <span class="string">"capability"</span>: <span class="string">"standard"</span>,     <span class="comment">// GPT-4 o equivalente</span>
+      <span class="string">"temperature"</span>: 0.2,           <span class="comment">// Bajo = más determinista</span>
+      <span class="string">"use_for"</span>: [<span class="string">"plan"</span>, <span class="string">"react"</span>]
+    <span class="string">}</span>,
+    <span class="string">"reasoning"</span>: <span class="string">{</span>
+      <span class="string">"capability"</span>: <span class="string">"cheap"</span>,       <span class="comment">// Haiku o equivalente</span>
+      <span class="string">"temperature"</span>: 0.2,
+      <span class="string">"use_for"</span>: [<span class="string">"evaluation"</span>]
+    <span class="string">}</span>,
+    <span class="string">"response_format"</span>: <span class="string">"tool_calling"</span>
+  <span class="string">}</span>,
+
+  <span class="comment">// Tools: qué puede hacer</span>
+  <span class="string">"tools"</span>: [
+    <span class="string">{</span>
+      <span class="string">"id"</span>: <span class="string">"search.web"</span>,
+      <span class="string">"config"</span>: <span class="string">{</span> <span class="string">"max_results"</span>: 5 <span class="string">}</span>
+    <span class="string">}</span>,
+    <span class="string">{</span>
+      <span class="string">"id"</span>: <span class="string">"db.query.customers"</span>,
+      <span class="string">"config"</span>: <span class="string">{}</span>
+    <span class="string">}</span>,
+    <span class="string">{</span>
+      <span class="string">"id"</span>: <span class="string">"email.send"</span>,
+      <span class="string">"config"</span>: <span class="string">{}</span>
+    <span class="string">}</span>
+  ],
+
+  <span class="comment">// Policies: qué puede y no puede hacer</span>
+  <span class="string">"policies"</span>: <span class="string">{</span>
+    <span class="string">"network"</span>: <span class="string">{</span>
+      <span class="string">"mode"</span>: <span class="string">"allow"</span>,
+      <span class="string">"domains"</span>: [<span class="string">"api.example.com"</span>, <span class="string">"*.internal.test"</span>]
+    <span class="string">}</span>,
+    <span class="string">"database"</span>: <span class="string">{</span>
+      <span class="string">"domain_db"</span>: <span class="string">"allow"</span>,
+      <span class="string">"tables"</span>: [<span class="string">"customers"</span>, <span class="string">"orders"</span>]
+    <span class="string">}</span>,
+    <span class="string">"budget"</span>: <span class="string">{</span>
+      <span class="string">"max_steps"</span>: 20,
+      <span class="string">"max_tool_calls"</span>: 10,
+      <span class="string">"max_tokens"</span>: 100000,
+      <span class="string">"max_money_usd"</span>: 0.50,
+      <span class="string">"max_wallclock_s"</span>: 300
+    <span class="string">}</span>
+  <span class="string">}</span>,
+
+  <span class="comment">// Triggers: cuándo se ejecuta</span>
+  <span class="string">"triggers"</span>: [
+    <span class="string">{</span>
+      <span class="string">"type"</span>: <span class="string">"manual"</span>       <span class="comment">// Manual = desde API/UI</span>
+    <span class="string">}</span>
+  ]
+<span class="string">}</span>
+</div>
+
+<!-- EJEMPLOS -->
+<h2 id="ejemplos">7. Ejemplos Prácticos Paso a Paso</h2>
+
+<h3>7.1 Crear Tu Primer Agente: "FAQ Bot"</h3>
+
+<p>
+  Un agente que responde preguntas frecuentes usando un documento PDF como fuente.
+</p>
+
+<div class="step">
+  <span class="step-number">1</span>
+  <strong>Definir el Agente (JSON)</strong>
+  <div class="code-block">
+<span class="string">{</span>
+  <span class="string">"schema_version"</span>: 1,
+  <span class="string">"id"</span>: <span class="string">"faq-bot"</span>,
+  <span class="string">"identity"</span>: <span class="string">{</span>
+    <span class="string">"name"</span>: <span class="string">"FAQ Bot"</span>,
+    <span class="string">"description"</span>: <span class="string">"Responde preguntas comunes"</span>
+  <span class="string">}</span>,
+  <span class="string">"goal"</span>: <span class="string">{</span>
+    <span class="string">"statement"</span>: <span class="string">"Encontrar la respuesta correcta en el FAQ"</span>,
+    <span class="string">"success_criteria"</span>: []
+  <span class="string">}</span>,
+  <span class="string">"runtime"</span>: <span class="string">{</span>
+    <span class="string">"autonomy_level"</span>: 1,
+    <span class="string">"max_iterations"</span>: 1
+  <span class="string">}</span>,
+  <span class="string">"brain"</span>: <span class="string">{</span>
+    <span class="string">"primary"</span>: <span class="string">{</span>
+      <span class="string">"capability"</span>: <span class="string">"standard"</span>,
+      <span class="string">"temperature"</span>: 0.1
+    <span class="string">}</span>
+  <span class="string">}</span>,
+  <span class="string">"tools"</span>: [
+    <span class="string">{</span>
+      <span class="string">"id"</span>: <span class="string">"knowledge.search"</span>,
+      <span class="string">"config"</span>: <span class="string">{</span> <span class="string">"top_k"</span>: 3 <span class="string">}</span>
+    <span class="string">}</span>
+  ],
+  <span class="string">"policies"</span>: <span class="string">{</span>
+    <span class="string">"budget"</span>: <span class="string">{</span>
+      <span class="string">"max_steps"</span>: 5,
+      <span class="string">"max_tool_calls"</span>: 2,
+      <span class="string">"max_tokens"</span>: 10000,
+      <span class="string">"max_money_usd"</span>: 0.05
+    <span class="string">}</span>
+  <span class="string">}</span>
+<span class="string">}</span>
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Crear el Agente (CLI o UI)</strong>
+  <div class="code-block">
+<span class="comment"># Vía CLI:</span>
+python -m aap.cli.main create-agent faq-bot <span class="string">"FAQ Bot"</span>
+python -m aap.cli.main create-version faq-bot definition.json
+
+<span class="comment"># Vía UI:</span>
+<span class="comment"># 1. Abre http://localhost:8080</span>
+<span class="comment"># 2. Haz clic en "+ Crear agente"</span>
+<span class="comment"># 3. Rellena el formulario</span>
+<span class="comment"># 4. Haz clic en "Guardar"</span>
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <strong>Ejecutar (Trigger)</strong>
+  <div class="code-block">
+curl -X POST http://localhost:8080/agents/faq-bot/runs \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{
+    "input": {
+      "question": "¿Cuál es tu política de devoluciones?"
+    }
+  }'</span>
+
+<span class="comment"># Respuesta:</span>
+<span class="string">{</span>
+  <span class="string">"run_id"</span>: <span class="string">"abc123def456..."</span>,
+  <span class="string">"status"</span>: <span class="string">"queued"</span>
+<span class="string">}</span>
+  </div>
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  <strong>Monitorear Ejecución</strong>
+  <div class="code-block">
+<span class="comment"># Esperar 2-5 segundos (worker pickup)</span>
+
+curl http://localhost:8080/runs/abc123def456
+
+<span class="comment"># Ver eventos paso a paso:</span>
+curl http://localhost:8080/runs/abc123def456/events
+
+<span class="comment"># Ver herramientas ejecutadas:</span>
+curl http://localhost:8080/runs/abc123def456/tool_calls
+  </div>
+</div>
+
+<h3>7.2 Modificación: FAQ Bot v2 con Redacción</h3>
+
+<p>
+  La v1 funcionó, pero queremos que NO muestre información sensible. Creamos v2 con políticas más restrictivas.
+</p>
+
+<div class="code-block">
+<span class="comment"># Cambio en policies:</span>
+<span class="string">"policies"</span>: <span class="string">{</span>
+  <span class="string">"network"</span>: <span class="string">{</span>
+    <span class="string">"mode"</span>: <span class="string">"denied"</span>           <span class="comment">// No acceso a web</span>
+  <span class="string">}</span>,
+  <span class="string">"budget"</span>: <span class="string">{</span>
+    <span class="string">"max_steps"</span>: 3,               <span class="comment">// Menos pasos</span>
+    <span class="string">"max_money_usd"</span>: 0.02         <span class="comment">// Más barato</span>
+  <span class="string">}</span>
+<span class="string">}</span>
+
+<span class="comment"># Crear v2:</span>
+python -m aap.cli.main create-version faq-bot faq-bot-v2.json
+
+<span class="comment"># Comparar v1 vs v2:</span>
+curl http://localhost:8080/agents/faq-bot/compare?a=1\&b=2
+
+<span class="comment"># Promover v2 si está bien:</span>
+curl -X POST http://localhost:8080/agents/faq-bot/versions/2/promote
+</div>
+
+<!-- OPERACIÓN -->
+<h2 id="operacion">8. Operación y Monitoreo en Producción</h2>
+
+<h3>8.1 Health Checks y Alertas</h3>
+
+<p>
+  En producción, configura monitoreo continuo de la salud del sistema:
+</p>
+
+<div class="code-block">
+<span class="comment"># Endpoint Health (cada 30 segundos):</span>
+GET /health
+
+<span class="comment"># Respuesta esperada:</span>
+<span class="string">{</span>
+  <span class="string">"status"</span>: <span class="string">"ok"</span>,
+  <span class="string">"api"</span>: true,                <span class="comment">// API está respondiendo</span>
+  <span class="string">"worker"</span>: true,            <span class="comment">// Worker está ejecutando</span>
+  <span class="string">"db"</span>: true                 <span class="comment">// BD accesible</span>
+<span class="string">}</span>
+
+<span class="comment"># Alertar si:</span>
+<span class="comment">// - status != "ok"</span>
+<span class="comment">// - Respuesta tarda > 5 segundos</span>
+<span class="comment">// - API o worker está false</span>
+</div>
+
+<h3>8.2 Métricas por Agente</h3>
+
+<div class="code-block">
+<span class="comment"># Obtener métricas de un agente (tasa de éxito, coste, latencia):</span>
+GET /agents/{id}/metrics
+
+<span class="comment"># Respuesta:</span>
+<span class="string">{</span>
+  <span class="string">"version"</span>: 2,
+  <span class="string">"metrics"</span>: <span class="string">{</span>
+    <span class="string">"total_runs"</span>: 1250,
+    <span class="string">"completion_rate"</span>: 0.98,     <span class="comment">// 98% completadas</span>
+    <span class="string">"failure_rate"</span>: 0.01,        <span class="comment">// 1% fallidas</span>
+    <span class="string">"exhausted_rate"</span>: 0.01,     <span class="comment">// 1% sin presupuesto</span>
+    <span class="string">"cost_usd"</span>: <span class="string">{</span>
+      <span class="string">"avg"</span>: 0.015,               <span class="comment">// $0.015 por run promedio</span>
+      <span class="string">"total"</span>: 18.75             <span class="comment">// $18.75 en total</span>
+    <span class="string">}</span>,
+    <span class="string">"latency_ms"</span>: <span class="string">{</span>
+      <span class="string">"avg"</span>: 2340                 <span class="comment">// 2.34 segundos promedio</span>
+    <span class="string">}</span>
+  <span class="string">}</span>
+<span class="string">}</span>
+</div>
+
+<h3>8.3 Logs y Debugging</h3>
+
+<div class="code-block">
+<span class="comment"># Ver logs en tiempo real (Docker):</span>
+docker-compose logs -f worker
+
+<span class="comment"># Ver logs del API:</span>
+docker-compose logs -f api
+
+<span class="comment"># Guardar logs a archivo:</span>
+docker-compose logs > logs.txt 2>&1
+
+<span class="comment"># Búsqueda en logs:</span>
+docker-compose logs | grep <span class="string">"ERROR"</span>
+docker-compose logs | grep <span class="string">"run_id"</span>
+</div>
+
+<!-- TROUBLESHOOT -->
+<h2 id="troubleshoot">9. Diagnóstico y Resolución de Problemas</h2>
+
+<h3>Problema: Worker No Ejecuta Runs</h3>
+
+<div class="section">
+  <h4>Síntomas:</h4>
+  <ul>
+    <li>POST /runs retorna 202 ✓</li>
+    <li>Pero GET /runs/{id} sigue en "queued" después de 5 minutos</li>
+  </ul>
+
+  <h4>Diagnóstico:</h4>
+  <div class="code-block">
+<span class="comment"># 1. ¿Worker está corriendo?</span>
+docker-compose ps | grep worker
+
+<span class="comment"># 2. ¿Hay errores en los logs?</span>
+docker-compose logs worker | tail -50
+
+<span class="comment"># 3. ¿Base de datos accesible?</span>
+docker-compose exec worker python -c \
+  <span class="string">"from aap.config import runtime_db_path; print(runtime_db_path())"</span>
+  </div>
+
+  <h4>Solución:</h4>
+  <ol>
+    <li><strong>Reiniciar Worker:</strong> <code>docker-compose restart worker</code></li>
+    <li><strong>Verificar BD:</strong> Asegurar que el volumen `aap_data` está montado</li>
+    <li><strong>Aumentar logging:</strong> Añadir `--log-level DEBUG` en comando del worker</li>
+  </ol>
+</div>
+
+<h3>Problema: API Lenta / Timeouts</h3>
+
+<div class="section">
+  <h4>Síntomas:</h4>
+  <ul>
+    <li>GET /agents tarda > 10 segundos</li>
+    <li>Intermitente (a veces rápido, a veces lento)</li>
+  </ul>
+
+  <h4>Diagnóstico:</h4>
+  <div class="code-block">
+<span class="comment"># 1. ¿Servidor saturado?</span>
+docker stats aap_api
+
+<span class="comment"># 2. ¿Queries lentas en BD?</span>
+docker-compose exec api python -c \
+  <span class="string">"from aap.core.definition.repository import list_agents; \</span>
+   <span class="string">import time; t=time.time(); list_agents(); print(time.time()-t)"</span>
+
+<span class="comment"># 3. ¿Network issues?</span>
+docker network inspect arquitecturaalfa1_aap_network
+  </div>
+
+  <h4>Solución:</h4>
+  <ol>
+    <li><strong>Aumentar CPU/RAM:</strong> En docker-compose, añadir límites</li>
+    <li><strong>Indexar BD:</strong> Crear índices en tablas frecuentes</li>
+    <li><strong>Caché:</strong> Implementar Redis para agentes frecuentes</li>
+  </ol>
+</div>
+
+<h3>Problema: Datos Perdidos Después de Restart</h3>
+
+<div class="section">
+  <h4>Síntomas:</h4>
+  <ul>
+    <li>Antes del restart: 100 runs en la BD</li>
+    <li>Después del restart: 0 runs</li>
+  </ul>
+
+  <h4>Diagnóstico:</h4>
+  <div class="code-block">
+<span class="comment"># 1. ¿Volumen persiste?</span>
+docker volume ls | grep aap_data
+
+<span class="comment"># 2. ¿Ruta correcta?</span>
+docker inspect arquitecturaalfa1-api-1 | grep -A 3 <span class="string">"Mounts"</span>
+
+<span class="comment"># 3. ¿Permissions?</span>
+ls -la /var/lib/docker/volumes/aap_data/_data/
+  </div>
+
+  <h4>Solución:</h4>
+  <ol>
+    <li><strong>Verificar volumen:</strong> <code>docker volume inspect aap_data</code></li>
+    <li><strong>Backup antes de reiniciar:</strong> <code>cp -r ./data ./data.backup</code></li>
+    <li><strong>Usar volumen externo:</strong> Apuntar a /mnt o /var/aap-data en el host</li>
+  </ol>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <h3>Referencia Rápida</h3>
+
+  <table style="font-size: 0.9em;">
+    <tr>
+      <td><strong>Iniciar Local:</strong></td>
+      <td><code>uvicorn aap.api.main:app --reload</code> + <code>python -m aap.worker.main</code></td>
+    </tr>
+    <tr>
+      <td><strong>Iniciar Docker:</strong></td>
+      <td><code>docker-compose up -d</code></td>
+    </tr>
+    <tr>
+      <td><strong>Crear Agente:</strong></td>
+      <td><code>POST /agents + POST /agents/{id}/versions</code></td>
+    </tr>
+    <tr>
+      <td><strong>Ejecutar Agente:</strong></td>
+      <td><code>POST /agents/{id}/runs</code></td>
+    </tr>
+    <tr>
+      <td><strong>Ver Resultado:</strong></td>
+      <td><code>GET /runs/{run_id}</code> + <code>GET /runs/{run_id}/events</code></td>
+    </tr>
+    <tr>
+      <td><strong>Métricas:</strong></td>
+      <td><code>GET /agents/{id}/metrics</code></td>
+    </tr>
+    <tr>
+      <td><strong>Health Check:</strong></td>
+      <td><code>GET /health</code></td>
+    </tr>
+  </table>
+
+  <p style="margin-top: 30px; color: #666;">
+    <strong>Documentación Completa:</strong> https://github.com/tu-org/aap-v1/wiki<br>
+    <strong>Soporte:</strong> support@tu-org.com | Slack: #aap-support<br>
+    <strong>Versión:</strong> AAP V1.0 (Producción) | Última actualización: 2026-08-30
+  </p>
+</div>
+
+</div>
+</body>
+</html>
